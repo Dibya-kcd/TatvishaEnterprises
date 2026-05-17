@@ -73,7 +73,7 @@ const App = () => (
       <TooltipProvider>
         <Sonner position="top-center" expand visibleToasts={6} richColors closeButton />
         <PrinterProvider>
-          <BrowserRouter>
+          <BrowserRouter basename={import.meta.env.BASE_URL}>
             <PinAuthProvider>
               <AuthProvider>
                 <Routes>
