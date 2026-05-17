@@ -1,0 +1,132 @@
+@import url('https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,100..1000;1,9..40,100..1000&family=DM+Mono:ital,wght@0,300;0,400;0,500;1,300;1,400;1,500&family=Courier+Prime:ital,wght@0,400;0,700;1,400;1,700&display=swap');
+@import "tailwindcss";
+
+@theme {
+  --font-sans: "DM Sans", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "DM Mono", monospace;
+  
+  --color-brand-primary: #C0622A; /* Deep Terracotta */
+  --color-brand-secondary: #F48225; /* Saffron Orange */
+  --color-brand-accent: #FEF3C7; /* Warm Saffron Pale */
+  
+  --color-background: #FDFCF8; /* Warm Off-White / Beige */
+  --color-background-tertiary: #F8F7F0;
+  --color-foreground: #1A1814;
+  --color-card: #FFFFFF;
+  --color-card-foreground: #1A1814;
+  --color-popover: #FFFFFF;
+  --color-popover-foreground: #1A1814;
+  --color-primary: #C0622A;
+  --color-primary-foreground: #FFFFFF;
+  --color-secondary: #F8F7F0;
+  --color-secondary-foreground: #451A03;
+  --color-muted: #F8F7F0;
+  --color-muted-foreground: #71716A;
+  --color-accent: #FEF3C7;
+  --color-accent-foreground: #92400E;
+  --color-destructive: #991B1B;
+  --color-destructive-foreground: #FFFFFF;
+  --color-border: #E8E6D9;
+  --color-input: #E8E6D9;
+  --color-ring: #C0622A;
+
+  --color-success: #15803D;
+  --color-warning: #F48225;
+
+  --color-status-pending: #F48225; /* saffron orange */
+  --color-status-approved: #2563EB; /* blue */
+  --color-status-dispatched: #7C3AED; /* violet */
+  --color-status-delivered: #15803D; /* success */
+  --color-status-cancelled: #991B1B; /* destructive */
+  
+  --radius: 1rem; /* Slightly larger rounded corners for premium feel */
+
+  /* Shadow Scale Premium */
+  --shadow-xs: 0 1px 2px 0 rgba(192, 98, 42, 0.05);
+  --shadow-sm: 0 1px 3px 0 rgba(192, 98, 42, 0.05), 0 1px 2px -1px rgba(192, 98, 42, 0.05);
+  --shadow-md: 0 4px 6px -1px rgba(192, 98, 42, 0.08), 0 2px 4px -2px rgba(192, 98, 42, 0.08);
+  --shadow-lg: 0 10px 25px -3px rgba(192, 98, 42, 0.1), 0 4px 6px -4px rgba(192, 98, 42, 0.1);
+  --shadow-brand: 0 20px 30px -10px rgba(192, 98, 42, 0.25);
+
+  /* Animation */
+  --animate-shimmer: shimmer 2s infinite linear;
+  --animate-fade-in: fade-in 0.3s ease-out;
+
+  @keyframes shimmer {
+    0% { background-position: -200% 0; }
+    100% { background-position: 200% 0; }
+  }
+  @keyframes fade-in {
+    from { opacity: 0; transform: translateY(8px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  body {
+    @apply bg-background text-foreground font-sans antialiased;
+    -webkit-tap-highlight-color: transparent;
+    touch-action: manipulation;
+    overscroll-behavior-y: contain;
+  }
+  input[type="number"]::-webkit-inner-spin-button,
+  input[type="number"]::-webkit-outer-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+  }
+  .tabular-nums {
+    font-variant-numeric: tabular-nums;
+  }
+}
+
+@layer components {
+  .status-badge {
+    @apply inline-flex items-center rounded-full px-2.5 py-0.5 text-[11px] font-bold;
+  }
+  
+  .hover-lift {
+    @apply transition-all duration-300 hover:-translate-y-1 hover:shadow-lg active:translate-y-0 active:shadow-md;
+  }
+
+  .shimmer {
+    @apply relative overflow-hidden bg-muted before:absolute before:inset-0 before:-translate-x-full before:animate-[shimmer_2s_infinite] before:bg-linear-to-r before:from-transparent before:via-white/20 before:to-transparent;
+  }
+
+  .animate-fade-in {
+    animation: var(--animate-fade-in);
+  }
+}
+
+@utility safe-pt {
+  padding-top: max(1rem, env(safe-area-inset-top));
+}
+
+@utility safe-pb {
+  padding-bottom: max(1rem, env(safe-area-inset-bottom));
+}
+
+@utility no-scrollbar {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+  &::-webkit-scrollbar {
+    display: none;
+  }
+}
+
+@utility scrollbar-thin {
+  scrollbar-width: thin;
+  &::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+  &::-webkit-scrollbar-thumb {
+    @apply bg-muted-foreground/20 rounded-full hover:bg-muted-foreground/30;
+  }
+}
+
+@utility bg-brand-gradient {
+  background: linear-gradient(135deg, var(--color-brand-primary), var(--color-brand-secondary));
+}
