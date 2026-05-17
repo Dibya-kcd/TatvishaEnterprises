@@ -2,7 +2,7 @@
   "name": "Tatvisha Enterprises",
   "short_name": "Tatvisha",
   "description": "Spice Distribution & Inventory Management",
-  "start_url": "/",
+  "start_url": "./",
   "display": "standalone",
   "background_color": "#ffffff",
   "theme_color": "#d4441a",
