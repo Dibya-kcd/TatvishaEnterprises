@@ -8,13 +8,13 @@
   "theme_color": "#d4441a",
   "icons": [
     {
-      "src": "https://raw.githubusercontent.com/google/material-design-icons/master/png/action/shopping_cart/materialicons/192dp/1x/baseline_shopping_cart_black_192dp.png",
+      "src": "./icons/icon-192.png",
       "sizes": "192x192",
       "type": "image/png",
       "purpose": "any maskable"
     },
     {
-      "src": "https://raw.githubusercontent.com/google/material-design-icons/master/png/action/shopping_cart/materialicons/512dp/1x/baseline_shopping_cart_black_512dp.png",
+      "src": "./icons/icon-512.png",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "any maskable"
