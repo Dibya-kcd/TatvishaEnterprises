@@ -5,14 +5,16 @@ export type PrinterState = 'disconnected' | 'connecting' | 'connected' | 'error'
 export interface PrinterDevice {
   name: string;
   address?: string;
+  rawDevice?: unknown;
 }
 
 export interface PrinterContextType {
   state: PrinterState;
   connectedDevice: PrinterDevice | null;
-  connect: (device: PrinterDevice) => Promise<void>;
+  connect: (device?: PrinterDevice) => Promise<void>;
   disconnect: () => Promise<void>;
-  scan: () => Promise<void>;
+  scan: () => Promise<void | PrinterDevice[]>;
+  print: (data: Uint8Array) => Promise<void>;
 }
 
 export const PrinterContext = createContext<PrinterContextType | undefined>(undefined);

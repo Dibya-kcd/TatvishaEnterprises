@@ -153,6 +153,7 @@ export default function Products() {
       <PageHeader
         title="Products"
         subtitle="Catalog and inventory manifest"
+        onBack={() => navigate("/")}
         action={
           <div className="flex gap-2 items-center">
             {isAdmin && (

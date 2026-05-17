@@ -1,4 +1,5 @@
 import * as React from "react";
+import { useNavigate } from "react-router-dom";
 import { formatDistanceToNow } from "date-fns";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent } from "@/components/ui/card";
@@ -56,6 +57,7 @@ const ROLES: { id: AppRole; label: string; desc: string; icon: LucideIcon }[] = 
 ];
 
 export default function Users() {
+  const navigate = useNavigate();
   const { user: me } = useAuth();
   const [users, setUsers] = React.useState<UserRow[] | null>(null);
   const [showSelfDemoteConfirm, setShowSelfDemoteConfirm] = React.useState(false);
@@ -218,6 +220,7 @@ export default function Users() {
       <PageHeader 
         title="Staff" 
         subtitle="Manage staff roles and access PINs" 
+        onBack={() => navigate("/")}
         action={
           <Button 
             onClick={() => setOnboardOpen(true)}

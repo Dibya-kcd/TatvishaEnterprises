@@ -233,6 +233,7 @@ export default function Invoices() {
       <PageHeader 
         title="Invoices" 
         subtitle={!isLoading ? `${allInvoices.length} entries · ${fmtCompactINR(totalBalance)} outstanding` : "Syncing invoices..."}
+        onBack={() => navigate("/")}
         action={selectedIds.size > 0 && (
           <Button 
             className="rounded-2xl font-black uppercase tracking-widest text-xs h-11 px-6 shadow-xl shadow-brand-primary/20 bg-brand-primary text-white"

@@ -116,6 +116,7 @@ export default function Shops() {
       <PageHeader
         title="Shops"
         subtitle={`${shops?.filter(s => s.is_active).length || 0} active shops`}
+        onBack={() => navigate("/")}
         actionLabel="Add shop"
         onAction={canAdd ? () => { setEdit(empty); setIsAddDialogOpen(true); } : undefined}
         actionIcon={<Plus className="mr-2 h-5 w-5" />}

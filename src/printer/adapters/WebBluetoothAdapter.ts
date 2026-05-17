@@ -19,18 +19,33 @@ export class WebBluetoothAdapter implements PrinterAdapter {
   private _connected = false;
 
   async scan(): Promise<BluetoothDevice> {
-    // @ts-expect-error - Web Bluetooth API might be missing in some environments
-    return await navigator.bluetooth.requestDevice({
-      filters: [
-        { services: PRINTER_SERVICE_UUIDS },
-        { namePrefix: 'Printer' },
-        { namePrefix: 'XP-' },
-        { namePrefix: 'MTP' },
-        { namePrefix: 'POS' },
-        { namePrefix: 'BT' },
-      ],
-      optionalServices: PRINTER_SERVICE_UUIDS,
-    });
+    if (!navigator.bluetooth) {
+      throw new Error("Web Bluetooth API is not available in this browser or environment.");
+    }
+    
+    try {
+      // @ts-expect-error - Web Bluetooth API might be missing in some environments
+      return await navigator.bluetooth.requestDevice({
+        filters: [
+          { services: PRINTER_SERVICE_UUIDS },
+          { namePrefix: 'Printer' },
+          { namePrefix: 'XP-' },
+          { namePrefix: 'MTP' },
+          { namePrefix: 'POS' },
+          { namePrefix: 'BT' },
+        ],
+        optionalServices: PRINTER_SERVICE_UUIDS,
+      });
+    } catch (error: unknown) {
+      const err = error as Error;
+      if (err.name === 'SecurityError') {
+        throw new Error("Bluetooth access blocked by security policy. Try opening this app in a new tab.");
+      }
+      if (err.name === 'NotFoundError') {
+        throw new Error("No compatible bluetooth printer selected.");
+      }
+      throw error;
+    }
   }
 
   async connect(rawDevice?: BluetoothDevice): Promise<void> {
@@ -101,7 +116,7 @@ export class WebBluetoothAdapter implements PrinterAdapter {
   async print(data: Uint8Array): Promise<void> {
     if (!this.writeChar) throw new Error('Not connected');
     
-    const MTU = 512; // Standard chunk size for Web Bluetooth
+    const MTU = 120; // Safe chunk size for many BLE printers to avoid buffer overflow
     for (let i = 0; i < data.length; i += MTU) {
       const chunk = data.slice(i, i + MTU);
       if (this.writeChar.properties.writeWithoutResponse) {
@@ -109,7 +124,8 @@ export class WebBluetoothAdapter implements PrinterAdapter {
       } else {
           await this.writeChar.writeValueWithResponse(chunk);
       }
-      await new Promise(r => setTimeout(r, 20)); // Small delay between chunks
+      // Increased delay slightly to give printer time to process buffers
+      await new Promise(r => setTimeout(r, 60)); 
     }
   }
 

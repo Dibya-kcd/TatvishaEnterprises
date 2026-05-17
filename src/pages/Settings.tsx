@@ -41,7 +41,7 @@ import { DropdownMenuSeparator } from "@/components/ui/dropdown-menu";
 type SettingsTab = "hardware" | "business" | "account" | "preferences";
 
 export default function Settings() {
-  const { state: printerState, connectedDevice, connect, disconnect, scan } = usePrinter();
+  const { state: printerState, connectedDevice, connect, disconnect, scan, print } = usePrinter();
   const { user, isAdmin, signOut } = useAuth();
   const { settings, updateSetting, resetSettings } = useSettings();
   const { 
@@ -55,6 +55,45 @@ export default function Settings() {
   } = useGlobalSettings();
   const [activeTab, setActiveTab] = React.useState<SettingsTab>("hardware");
   const [isScanning, setIsScanning] = React.useState(false);
+  const [isTesting, setIsTesting] = React.useState(false);
+
+  const handleTestPrint = async () => {
+    if (printerState !== 'connected') {
+      toast.error("Printer not connected");
+      return;
+    }
+
+    try {
+      setIsTesting(true);
+      const encoder = new TextEncoder();
+      
+      // ESC @ (Initialize)
+      // ESC a 1 (Center align)
+      // GS ! 17 (Double height/width)
+      // TEST OK
+      // LF LF LF LF
+      // GS V 66 0 (Cut)
+      const data = new Uint8Array([
+        0x1B, 0x40,
+        0x1B, 0x61, 0x01,
+        0x1D, 0x21, 0x11,
+        ...encoder.encode("TATVISHA\n"),
+        0x1D, 0x21, 0x00,
+        ...encoder.encode("CONNECTION OK\n"),
+        ...encoder.encode(new Date().toLocaleString() + "\n"),
+        0x0A, 0x0A, 0x0A, 0x0A,
+        0x1D, 0x56, 0x42, 0x00
+      ]);
+      
+      await print(data);
+      toast.success("Test signal transmitted");
+    } catch (error) {
+      console.error(error);
+      toast.error("Spooling failed");
+    } finally {
+      setIsTesting(false);
+    }
+  };
   const [localMargins, setLocalMargins] = React.useState(margins);
   const [localCats, setLocalCats] = React.useState(categoryMargins);
   const [localVariance, setLocalVariance] = React.useState(varianceThreshold);
@@ -72,9 +111,24 @@ export default function Settings() {
   }, [varianceThreshold]);
 
   const handleScan = async () => {
-    setIsScanning(true);
-    await scan();
-    setIsScanning(false);
+    try {
+      setIsScanning(true);
+      await scan();
+    } catch (err: unknown) {
+      console.error(err);
+      const error = err as Error;
+      const msg = error.message || "Bluetooth scan failed";
+      toast.error("Interface Error", {
+        description: msg,
+        duration: 8000,
+        action: msg.includes("new tab") ? {
+          label: "Open App",
+          onClick: () => window.open(window.location.href, '_blank')
+        } : undefined
+      });
+    } finally {
+      setIsScanning(false);
+    }
   };
 
   const handleUpdate = <K extends keyof typeof settings>(key: K, value: typeof settings[K]) => {
@@ -238,15 +292,25 @@ export default function Settings() {
                           </div>
                         </div>
                         
-                        <div className="flex items-center gap-3 w-full lg:w-auto">
+                        <div className="flex flex-col sm:flex-row items-center gap-3 w-full lg:w-auto">
                           {printerState === 'connected' ? (
-                            <Button 
-                              variant="outline" 
-                              onClick={disconnect} 
-                              className="w-full lg:w-48 rounded-xl h-14 font-black uppercase text-xs border-2 bg-white border-slate-200 hover:bg-rose-50 hover:text-rose-500 transition-all"
-                            >
-                              Kill Link
-                            </Button>
+                            <>
+                              <Button 
+                                onClick={handleTestPrint}
+                                disabled={isTesting}
+                                className="w-full lg:w-48 bg-slate-100 hover:bg-slate-200 text-slate-900 shadow-sm rounded-xl h-14 font-black uppercase text-xs tracking-widest transition-all active:scale-95 border border-slate-200"
+                              >
+                                {isTesting ? <RefreshCw className="mr-2 h-4 w-4 animate-spin" /> : <RotateCcw className="mr-2 h-4 w-4" />}
+                                Test Link
+                              </Button>
+                              <Button 
+                                variant="outline" 
+                                onClick={disconnect} 
+                                className="w-full lg:w-48 rounded-xl h-14 font-black uppercase text-xs border-2 bg-white border-slate-200 hover:bg-rose-50 hover:text-rose-500 transition-all"
+                              >
+                                Kill Link
+                              </Button>
+                            </>
                           ) : (
                             <Button 
                               onClick={handleScan}
