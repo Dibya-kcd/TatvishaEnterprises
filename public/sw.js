@@ -1,8 +1,8 @@
-const CACHE_NAME = 'tatvisha-v1';
+const CACHE_NAME = 'tatvisha-v2';
 const ASSETS_TO_CACHE = [
-  '/',
-  '/index.html',
-  '/manifest.webmanifest'
+  './',
+  './index.html',
+  './manifest.webmanifest'
 ];
 
 self.addEventListener('install', (event) => {
