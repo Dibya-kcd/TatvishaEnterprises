@@ -10,16 +10,10 @@ const __dirname = path.dirname(__filename);
 
 // https://vitejs.dev/config/
 export default defineConfig(({ mode }) => ({
-  base: './',
+  base: '/TatvishaEnterprises/',
   server: {
     host: "0.0.0.0",
     port: 3000,
-  },
-  define: {
-    'import.meta.env.VITE_SUPABASE_URL': JSON.stringify("https://vuzfnlbnjepngerclxqm.supabase.co"),
-    'import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY': JSON.stringify("sb_publishable_MDo-be2ubnNahNzjZHfc1g_piDzesJp"),
-    'import.meta.env.VITE_SUPABASE_PROJECT_ID': JSON.stringify("vuzfnlbnjepngerclxqm"),
-    'import.meta.env.VITE_GEMINI_API_KEY': JSON.stringify("AIzaSyDU_ads36ofICMeJl63pfDzYGstJtVFr6k"),
   },
   plugins: [
     react(),

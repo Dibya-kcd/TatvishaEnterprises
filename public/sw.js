@@ -1,8 +1,8 @@
-const CACHE_NAME = 'tatvisha-v3';
+const CACHE_NAME = 'tatvisha-v4';
 const ASSETS_TO_CACHE = [
-  './',
-  './index.html',
-  './manifest.json'
+  '/TatvishaEnterprises/',
+  '/TatvishaEnterprises/index.html',
+  '/TatvishaEnterprises/manifest.json'
 ];
 
 self.addEventListener('install', (event) => {
