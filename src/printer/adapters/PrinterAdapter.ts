@@ -1,6 +1,6 @@
 
 export interface PrinterAdapter {
-  scan(): Promise<any>;
+  scan(): Promise<unknown>;
   connect(deviceIdOrObj?: unknown): Promise<void>;
   disconnect(): Promise<void>;
   print(data: Uint8Array): Promise<void>;

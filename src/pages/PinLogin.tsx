@@ -50,10 +50,11 @@ export default function PinLogin() {
       } else {
         setSalespersons(data as Salesperson[] || []);
       }
-    } catch (e: any) {
-      console.error('[PinLogin] Failed to fetch staff:', e);
+    } catch (e: unknown) {
+      const error = e as Error;
+      console.error('[PinLogin] Failed to fetch staff:', error);
       toast.error("Database Connection Issue", {
-        description: e.message || "Could not load staff list. Please ensure database migrations are up to date.",
+        description: error.message || "Could not load staff list. Please ensure database migrations are up to date.",
       });
     } finally {
       setLoading(false);
