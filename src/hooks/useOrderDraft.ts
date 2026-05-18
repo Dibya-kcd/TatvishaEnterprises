@@ -254,6 +254,12 @@ export function useOrderDraft({ editId, initialShopId }: UseOrderDraftProps = {}
     }
   }, [editId, loadDraft]);
 
+  useEffect(() => {
+    if (!editId && !warehouseId && currentUser?.warehouse_id) {
+      setWarehouseId(currentUser.warehouse_id);
+    }
+  }, [editId, warehouseId, currentUser]);
+
   const savingRef = useRef(false);
   const lastSavedStateRef = useRef<string>("");
 
