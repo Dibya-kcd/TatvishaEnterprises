@@ -33,8 +33,6 @@ export class WebBluetoothAdapter implements PrinterAdapter {
           { namePrefix: 'MTP' },
           { namePrefix: 'POS' },
           { namePrefix: 'BT' },
-          { namePrefix: 'Thermal' },
-          { namePrefix: 'RP' },
         ],
         optionalServices: PRINTER_SERVICE_UUIDS,
       });
