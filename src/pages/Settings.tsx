@@ -1,5 +1,4 @@
 import * as React from "react";
-import { usePrinter } from "@/printer/PrinterContextCore";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { 
@@ -13,10 +12,7 @@ import {
   Settings2, 
   Store, 
   Sliders,
-  LogOut,
-  Layers,
-  Zap,
-  AlertCircle
+  LogOut
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Label } from "@/components/ui/label";
@@ -35,6 +31,7 @@ import {
   SelectValue 
 } from "@/components/ui/select";
 import { PageHeader } from "@/components/PageHeader";
+import { PrinterSettings } from "@/components/PrinterSettings";
 
 import { 
   ResponsiveContainer, 
@@ -44,7 +41,6 @@ import { DropdownMenuSeparator } from "@/components/ui/dropdown-menu";
 type SettingsTab = "hardware" | "business" | "account" | "preferences";
 
 export default function Settings() {
-  const { state: printerState, connectedDevice, connect, disconnect, scan, print } = usePrinter();
   const { user, isAdmin, signOut } = useAuth();
   const { settings, updateSetting, resetSettings } = useSettings();
   const { 
@@ -57,46 +53,7 @@ export default function Settings() {
     loading: marginsLoading 
   } = useGlobalSettings();
   const [activeTab, setActiveTab] = React.useState<SettingsTab>("hardware");
-  const [isScanning, setIsScanning] = React.useState(false);
-  const [isTesting, setIsTesting] = React.useState(false);
 
-  const handleTestPrint = async () => {
-    if (printerState !== 'connected') {
-      toast.error("Printer not connected");
-      return;
-    }
-
-    try {
-      setIsTesting(true);
-      const encoder = new TextEncoder();
-      
-      // ESC @ (Initialize)
-      // ESC a 1 (Center align)
-      // GS ! 17 (Double height/width)
-      // TEST OK
-      // LF LF LF LF
-      // GS V 66 0 (Cut)
-      const data = new Uint8Array([
-        0x1B, 0x40,
-        0x1B, 0x61, 0x01,
-        0x1D, 0x21, 0x11,
-        ...encoder.encode("TATVISHA\n"),
-        0x1D, 0x21, 0x00,
-        ...encoder.encode("CONNECTION OK\n"),
-        ...encoder.encode(new Date().toLocaleString() + "\n"),
-        0x0A, 0x0A, 0x0A, 0x0A,
-        0x1D, 0x56, 0x42, 0x00
-      ]);
-      
-      await print(data);
-      toast.success("Test signal transmitted");
-    } catch (error) {
-      console.error(error);
-      toast.error("Spooling failed");
-    } finally {
-      setIsTesting(false);
-    }
-  };
   const [localMargins, setLocalMargins] = React.useState(margins);
   const [localCats, setLocalCats] = React.useState(categoryMargins);
   const [localVariance, setLocalVariance] = React.useState(varianceThreshold);
@@ -112,27 +69,6 @@ export default function Settings() {
   React.useEffect(() => {
     setLocalVariance(varianceThreshold);
   }, [varianceThreshold]);
-
-  const handleScan = async () => {
-    try {
-      setIsScanning(true);
-      await scan();
-    } catch (err: unknown) {
-      console.error(err);
-      const error = err as Error;
-      const msg = error.message || "Bluetooth scan failed";
-      toast.error("Interface Error", {
-        description: msg,
-        duration: 8000,
-        action: msg.includes("new tab") ? {
-          label: "Open App",
-          onClick: () => window.open(window.location.href, '_blank')
-        } : undefined
-      });
-    } finally {
-      setIsScanning(false);
-    }
-  };
 
   const handleUpdate = <K extends keyof typeof settings>(key: K, value: typeof settings[K]) => {
     updateSetting(key, value);
@@ -151,16 +87,6 @@ export default function Settings() {
   const handleMarginChange = (st: keyof typeof margins, val: string) => {
     const num = parseFloat(val) || 0;
     setLocalMargins(prev => ({ ...prev, [st]: num }));
-  };
-
-  const saveMargins = async () => {
-    try {
-      await updateMargins(localMargins);
-      toast.success("Global config saved");
-    } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : "Failed to save config";
-      toast.error(message);
-    }
   };
 
   const navItems = [
@@ -256,154 +182,7 @@ export default function Settings() {
               className="space-y-6 px-1 sm:px-0"
             >
               {activeTab === "hardware" && (
-                <div className="space-y-6">
-                  <Card className="border-0 shadow-2xl shadow-slate-200/50 rounded-2xl lg:rounded-3xl overflow-hidden bg-white">
-                    <CardHeader className="bg-slate-900 p-6 sm:p-10 text-white relative min-h-[140px] sm:h-48 overflow-hidden">
-                      <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(255,255,255,0.05),transparent)]" />
-                      <div className="flex items-center justify-between relative z-10">
-                        <div className="space-y-0.5 sm:space-y-2">
-                          <CardTitle className="text-2xl sm:text-4xl font-black tracking-tighter">Thermal Engine</CardTitle>
-                          <CardDescription className="font-black text-white/40 uppercase text-[8px] sm:text-[10px] tracking-[0.2em] sm:tracking-[0.3em] leading-none">Peripheral Interface Access</CardDescription>
-                        </div>
-                        <div className="h-10 w-10 sm:h-16 sm:w-16 rounded-xl sm:rounded-3xl bg-white/5 flex items-center justify-center border border-white/10 backdrop-blur-xl">
-                          <Printer className="h-5 w-5 sm:h-8 sm:w-8 text-white/40" />
-                        </div>
-                      </div>
-                    </CardHeader>
-                    <CardContent className="p-4 sm:p-10 space-y-6 sm:space-y-10">
-                      {/* Connection Status Card */}
-                      <div className="relative overflow-hidden p-6 sm:p-10 rounded-2xl sm:rounded-[2.5rem] bg-slate-50 border border-slate-100 group">
-                        <div className="flex flex-col sm:flex-row items-center sm:items-center justify-between gap-6 sm:gap-10">
-                          <div className="flex items-center gap-4 sm:gap-8 w-full sm:w-auto">
-                            <div className={cn(
-                              "h-16 w-16 sm:h-24 sm:w-24 rounded-full flex items-center justify-center shadow-inner transition-all duration-500 shrink-0",
-                              printerState === 'connected' ? "bg-emerald-50 text-emerald-500 scale-110 shadow-emerald-100/50" : 
-                              printerState === 'error' ? "bg-rose-50 text-rose-500" :
-                              "bg-white text-slate-200"
-                            )}>
-                              {printerState === 'connected' ? (
-                                <CheckCircle2 className="h-8 w-8 sm:h-12 sm:w-12 animate-in zoom-in-50" />
-                              ) : printerState === 'error' ? (
-                                <ShieldAlert className="h-8 w-8 sm:h-12 sm:w-12" />
-                              ) : (
-                                <Printer className="h-8 w-8 sm:h-12 sm:w-12" />
-                              )}
-                            </div>
-                            <div className="min-w-0 flex-1">
-                              <p className={cn(
-                                "text-xl sm:text-3xl font-black tracking-tighter truncate leading-none mb-3",
-                                printerState === 'connected' ? "text-emerald-600" : "text-slate-800"
-                              )}>
-                                {printerState === 'connected' ? connectedDevice?.name : 
-                                 printerState === 'scanning' ? 'Discovering...' :
-                                 printerState === 'connecting' ? 'Handshaking...' :
-                                 printerState === 'error' ? 'Link Failure' : 'Link Required'}
-                              </p>
-                              <div className="flex flex-wrap items-center gap-2">
-                                <Badge className={cn(
-                                  "text-[9px] sm:text-[10px] font-black uppercase px-2 sm:px-3 h-5 sm:h-6 border-none rounded-lg tracking-wider",
-                                  printerState === 'connected' ? "bg-emerald-500 text-white" : 
-                                  printerState === 'error' ? "bg-rose-500 text-white" :
-                                  "bg-slate-200 text-slate-500"
-                                )}>
-                                  {printerState === 'connected' ? 'Authenticated' : 
-                                   printerState === 'scanning' ? 'Searching' :
-                                   printerState === 'connecting' ? 'Syncing' :
-                                   printerState === 'error' ? 'Interrupted' : 'Offline'}
-                                </Badge>
-                                <span className="text-[9px] sm:text-[10px] font-bold text-slate-400 uppercase tracking-widest leading-none whitespace-nowrap">Node BT-G5 v2.1</span>
-                              </div>
-                            </div>
-                          </div>
-                          
-                          <div className="flex flex-col sm:flex-row items-center gap-3 w-full sm:w-auto">
-                            {printerState === 'connected' ? (
-                              <>
-                                <Button 
-                                  onClick={handleTestPrint}
-                                  disabled={isTesting}
-                                  className="w-full sm:w-40 bg-white hover:bg-slate-50 text-slate-900 shadow-sm rounded-xl h-14 font-black uppercase text-[10px] tracking-widest transition-all active:scale-95 border-2 border-slate-100"
-                                >
-                                  {isTesting ? <RefreshCw className="mr-2 h-4 w-4 animate-spin" /> : <RotateCcw className="mr-2 h-4 w-4" />}
-                                  Test Signal
-                                </Button>
-                                <Button 
-                                  variant="outline" 
-                                  onClick={disconnect} 
-                                  className="w-full sm:w-40 rounded-xl h-14 font-black uppercase text-[10px] border-2 bg-white border-rose-100 text-rose-500 hover:bg-rose-500 hover:text-white transition-all shadow-sm"
-                                >
-                                  Kill Link
-                                </Button>
-                              </>
-                            ) : (
-                              <Button 
-                                onClick={handleScan}
-                                disabled={isScanning || printerState === 'connecting'}
-                                className={cn(
-                                  "w-full sm:w-64 shadow-xl rounded-2xl h-14 sm:h-16 px-6 font-black uppercase text-xs sm:text-sm tracking-widest transition-all active:scale-95",
-                                  printerState === 'error' ? "bg-rose-500 hover:bg-rose-600 text-white" : "bg-primary hover:bg-primary/90 text-white"
-                                )}
-                              >
-                                {isScanning || printerState === 'connecting' ? (
-                                  <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
-                                ) : (
-                                  <Layers className="mr-2 h-4 w-4" />
-                                )}
-                                {isScanning ? "Probing" : printerState === 'connecting' ? "Pairing" : "Initialize Link"}
-                              </Button>
-                            )}
-                          </div>
-                        </div>
-
-                        {/* Animated Scanning Overlay */}
-                        {(printerState === 'scanning' || printerState === 'connecting') && (
-                          <div className="absolute inset-0 bg-white/60 backdrop-blur-[2px] flex flex-col items-center justify-center gap-4 z-20">
-                            <div className="relative h-20 w-20 sm:h-24 sm:w-24">
-                              <div className="absolute inset-0 bg-primary/20 rounded-full animate-ping" />
-                              <div className="relative h-20 w-20 sm:h-24 sm:w-24 rounded-full bg-white border border-slate-100 flex items-center justify-center shadow-2xl">
-                                 <RefreshCw className="h-8 w-8 sm:h-10 sm:w-10 text-primary animate-spin" />
-                              </div>
-                            </div>
-                            <div className="text-center px-4">
-                              <p className="text-[10px] sm:text-xs font-black uppercase tracking-[0.2em] text-primary mb-1">
-                                {printerState === 'scanning' ? "Discovering local nodes" : "Establishing secure tunnel"}
-                              </p>
-                              <p className="text-[8px] sm:text-[10px] font-bold text-slate-400 uppercase tracking-widest">
-                                {printerState === 'scanning' ? "Ensure peripheral is in pairing mode" : "Verifying protocol compatibility"}
-                              </p>
-                            </div>
-                          </div>
-                        )}
-                      </div>
-
-                      {/* Hardware Help Cards */}
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
-                        <div className="p-6 sm:p-8 rounded-2xl bg-amber-50/50 border border-amber-100/50 flex gap-4 sm:gap-6 items-start">
-                          <div className="h-10 w-10 sm:h-12 sm:w-12 rounded-xl bg-amber-100 flex items-center justify-center shrink-0">
-                            <Zap className="h-5 w-5 sm:h-6 sm:w-6 text-amber-600" />
-                          </div>
-                          <div className="space-y-1">
-                            <p className="text-xs sm:text-sm font-black text-amber-900 uppercase tracking-wider">Quick Connect</p>
-                            <p className="text-[10px] sm:text-xs font-medium text-amber-700/70 leading-relaxed">
-                              Most printers use "0000" or "1234" as pairing code if requested by system.
-                            </p>
-                          </div>
-                        </div>
-                        <div className="p-6 sm:p-8 rounded-2xl bg-blue-50/50 border border-blue-100/50 flex gap-4 sm:gap-6 items-start">
-                          <div className="h-10 w-10 sm:h-12 sm:w-12 rounded-xl bg-blue-100 flex items-center justify-center shrink-0">
-                            <AlertCircle className="h-5 w-5 sm:h-6 sm:w-6 text-blue-600" />
-                          </div>
-                          <div className="space-y-1">
-                            <p className="text-xs sm:text-sm font-black text-blue-900 uppercase tracking-wider">Interface Note</p>
-                            <p className="text-[10px] sm:text-xs font-medium text-blue-700/70 leading-relaxed">
-                              On Android, ensure Location access is granted to allow Bluetooth scanning.
-                            </p>
-                          </div>
-                        </div>
-                      </div>
-                    </CardContent>
-                  </Card>
-                </div>
+                <PrinterSettings />
               )}
 
               {activeTab === "account" && (
