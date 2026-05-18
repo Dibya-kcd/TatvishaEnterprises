@@ -360,7 +360,8 @@ export default function NewOrder() {
         
         if (!editId && !warehouseId && fetchedWhs.length > 0) {
           const userWh = fetchedWhs.find(w => w.id === currentUser?.warehouse_id);
-          const mainWh = fetchedWhs.find(w => w.name === 'Main Warehouse');
+          // Try to find a warehouse with code 'MWH' or name containing 'Main', otherwise pick the first one
+          const mainWh = fetchedWhs.find(w => w.code === 'MWH' || w.name.toLowerCase().includes('main'));
           setWarehouseId(userWh?.id || mainWh?.id || fetchedWhs[0].id);
         }
       } catch (err: unknown) {
