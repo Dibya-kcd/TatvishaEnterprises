@@ -1,17 +1,24 @@
 import React, { createContext, useContext, useState, ReactNode, useRef } from 'react';
 import { PrinterContext, type PrinterState, type PrinterDevice, type PrinterContextType } from './PrinterContextCore';
 import { WebBluetoothAdapter } from './adapters/WebBluetoothAdapter';
+import { CapacitorBluetoothAdapter } from './adapters/CapacitorBluetoothAdapter';
+import { Capacitor } from '@capacitor/core';
+import { PrinterAdapter } from './adapters/PrinterAdapter';
 
 export const PrinterProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const [state, setState] = useState<PrinterState>('disconnected');
   const [errorReason, setErrorReason] = useState<string | null>(null);
   const [connectedDevice, setConnectedDevice] = useState<PrinterDevice | null>(null);
   const [isSimulated, setIsSimulated] = useState(false);
-  const adapterRef = useRef<WebBluetoothAdapter | null>(null);
+  const adapterRef = useRef<PrinterAdapter | null>(null);
 
   const getAdapter = () => {
     if (!adapterRef.current) {
-      adapterRef.current = new WebBluetoothAdapter();
+      if (Capacitor.isNativePlatform()) {
+        adapterRef.current = new CapacitorBluetoothAdapter();
+      } else {
+        adapterRef.current = new WebBluetoothAdapter();
+      }
     }
     return adapterRef.current;
   };
