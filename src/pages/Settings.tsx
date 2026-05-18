@@ -255,7 +255,7 @@ export default function Settings() {
               {activeTab === "hardware" && (
                 <div className="space-y-6">
                   <Card className="border-0 shadow-2xl shadow-slate-200/50 rounded-2xl lg:rounded-3xl overflow-hidden bg-white">
-                    <CardHeader className="bg-slate-900 p-6 sm:p-10 text-white relative h-32 sm:h-48 overflow-hidden">
+                    <CardHeader className="bg-slate-900 p-6 sm:p-10 text-white relative min-h-[140px] sm:h-48 overflow-hidden">
                       <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(255,255,255,0.05),transparent)]" />
                       <div className="flex items-center justify-between relative z-10">
                         <div className="space-y-0.5 sm:space-y-2">
@@ -268,80 +268,136 @@ export default function Settings() {
                       </div>
                     </CardHeader>
                     <CardContent className="p-4 sm:p-10 space-y-6 sm:space-y-10">
-                      <div className="flex flex-col lg:flex-row items-center lg:items-center justify-between gap-6 sm:gap-10 p-5 sm:p-10 rounded-2xl sm:rounded-[2.5rem] bg-slate-50 border border-slate-100 relative group">
-                        <div className="flex items-center gap-4 sm:gap-8 w-full sm:w-auto">
-                          <div className={cn(
-                            "h-12 w-12 sm:h-20 sm:w-20 rounded-full flex items-center justify-center shadow-inner transition-all duration-500 shrink-0",
-                            printerState === 'connected' ? "bg-emerald-50 text-emerald-500 scale-110" : "bg-white text-slate-200"
-                          )}>
-                            {printerState === 'connected' ? <CheckCircle2 className="h-6 w-6 sm:h-10 sm:w-10 animate-in zoom-in-50" /> : <Printer className="h-6 w-6 sm:h-10 sm:w-10" />}
-                          </div>
-                          <div className="min-w-0 flex-1">
-                            <p className="text-lg sm:text-2xl font-black tracking-tighter text-slate-800 truncate leading-none">
-                              {printerState === 'connected' ? connectedDevice?.name : 'Link required'}
-                            </p>
-                            <div className="flex items-center gap-2 mt-2">
-                              <Badge className={cn(
-                                "text-[9px] sm:text-[10px] font-black uppercase px-2 sm:px-3 h-5 sm:h-6 border-none rounded-lg tracking-wider",
-                                printerState === 'connected' ? "bg-emerald-500 text-white" : "bg-slate-200 text-slate-500"
+                      {/* Connection Status Card */}
+                      <div className="relative overflow-hidden p-6 sm:p-10 rounded-2xl sm:rounded-[2.5rem] bg-slate-50 border border-slate-100 group">
+                        <div className="flex flex-col sm:flex-row items-center sm:items-center justify-between gap-6 sm:gap-10">
+                          <div className="flex items-center gap-4 sm:gap-8 w-full sm:w-auto">
+                            <div className={cn(
+                              "h-16 w-16 sm:h-24 sm:w-24 rounded-full flex items-center justify-center shadow-inner transition-all duration-500 shrink-0",
+                              printerState === 'connected' ? "bg-emerald-50 text-emerald-500 scale-110 shadow-emerald-100/50" : 
+                              printerState === 'error' ? "bg-rose-50 text-rose-500" :
+                              "bg-white text-slate-200"
+                            )}>
+                              {printerState === 'connected' ? (
+                                <CheckCircle2 className="h-8 w-8 sm:h-12 sm:w-12 animate-in zoom-in-50" />
+                              ) : printerState === 'error' ? (
+                                <ShieldAlert className="h-8 w-8 sm:h-12 sm:w-12" />
+                              ) : (
+                                <Printer className="h-8 w-8 sm:h-12 sm:w-12" />
+                              )}
+                            </div>
+                            <div className="min-w-0 flex-1">
+                              <p className={cn(
+                                "text-xl sm:text-3xl font-black tracking-tighter truncate leading-none mb-3",
+                                printerState === 'connected' ? "text-emerald-600" : "text-slate-800"
                               )}>
-                                {printerState === 'connected' ? 'Authenticated' : 'Offline'}
-                              </Badge>
-                              <span className="text-[9px] sm:text-[10px] font-bold text-slate-400 uppercase tracking-widest leading-none whitespace-nowrap">Node BT-G5</span>
+                                {printerState === 'connected' ? connectedDevice?.name : 
+                                 printerState === 'scanning' ? 'Discovering...' :
+                                 printerState === 'connecting' ? 'Handshaking...' :
+                                 printerState === 'error' ? 'Link Failure' : 'Link Required'}
+                              </p>
+                              <div className="flex flex-wrap items-center gap-2">
+                                <Badge className={cn(
+                                  "text-[9px] sm:text-[10px] font-black uppercase px-2 sm:px-3 h-5 sm:h-6 border-none rounded-lg tracking-wider",
+                                  printerState === 'connected' ? "bg-emerald-500 text-white" : 
+                                  printerState === 'error' ? "bg-rose-500 text-white" :
+                                  "bg-slate-200 text-slate-500"
+                                )}>
+                                  {printerState === 'connected' ? 'Authenticated' : 
+                                   printerState === 'scanning' ? 'Searching' :
+                                   printerState === 'connecting' ? 'Syncing' :
+                                   printerState === 'error' ? 'Interrupted' : 'Offline'}
+                                </Badge>
+                                <span className="text-[9px] sm:text-[10px] font-bold text-slate-400 uppercase tracking-widest leading-none whitespace-nowrap">Node BT-G5 v2.1</span>
+                              </div>
                             </div>
                           </div>
-                        </div>
-                        
-                        <div className="flex flex-col sm:flex-row items-center gap-3 w-full lg:w-auto">
-                          {printerState === 'connected' ? (
-                            <>
+                          
+                          <div className="flex flex-col sm:flex-row items-center gap-3 w-full sm:w-auto">
+                            {printerState === 'connected' ? (
+                              <>
+                                <Button 
+                                  onClick={handleTestPrint}
+                                  disabled={isTesting}
+                                  className="w-full sm:w-40 bg-white hover:bg-slate-50 text-slate-900 shadow-sm rounded-xl h-14 font-black uppercase text-[10px] tracking-widest transition-all active:scale-95 border-2 border-slate-100"
+                                >
+                                  {isTesting ? <RefreshCw className="mr-2 h-4 w-4 animate-spin" /> : <RotateCcw className="mr-2 h-4 w-4" />}
+                                  Test Signal
+                                </Button>
+                                <Button 
+                                  variant="outline" 
+                                  onClick={disconnect} 
+                                  className="w-full sm:w-40 rounded-xl h-14 font-black uppercase text-[10px] border-2 bg-white border-rose-100 text-rose-500 hover:bg-rose-500 hover:text-white transition-all shadow-sm"
+                                >
+                                  Kill Link
+                                </Button>
+                              </>
+                            ) : (
                               <Button 
-                                onClick={handleTestPrint}
-                                disabled={isTesting}
-                                className="w-full lg:w-48 bg-slate-100 hover:bg-slate-200 text-slate-900 shadow-sm rounded-xl h-14 font-black uppercase text-xs tracking-widest transition-all active:scale-95 border border-slate-200"
+                                onClick={handleScan}
+                                disabled={isScanning || printerState === 'connecting'}
+                                className={cn(
+                                  "w-full sm:w-64 shadow-xl rounded-2xl h-14 sm:h-16 px-6 font-black uppercase text-xs sm:text-sm tracking-widest transition-all active:scale-95",
+                                  printerState === 'error' ? "bg-rose-500 hover:bg-rose-600 text-white" : "bg-primary hover:bg-primary/90 text-white"
+                                )}
                               >
-                                {isTesting ? <RefreshCw className="mr-2 h-4 w-4 animate-spin" /> : <RotateCcw className="mr-2 h-4 w-4" />}
-                                Test Link
+                                {isScanning || printerState === 'connecting' ? (
+                                  <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
+                                ) : (
+                                  <Layers className="mr-2 h-4 w-4" />
+                                )}
+                                {isScanning ? "Probing" : printerState === 'connecting' ? "Pairing" : "Initialize Link"}
                               </Button>
-                              <Button 
-                                variant="outline" 
-                                onClick={disconnect} 
-                                className="w-full lg:w-48 rounded-xl h-14 font-black uppercase text-xs border-2 bg-white border-slate-200 hover:bg-rose-50 hover:text-rose-500 transition-all"
-                              >
-                                Kill Link
-                              </Button>
-                            </>
-                          ) : (
-                            <Button 
-                              onClick={handleScan}
-                              disabled={isScanning}
-                              className="w-full lg:w-64 bg-primary hover:bg-primary/90 text-white shadow-xl rounded-2xl h-14 sm:h-16 px-6 font-black uppercase text-xs sm:text-sm tracking-widest transition-all active:scale-95"
-                            >
-                              {isScanning ? <RefreshCw className="mr-2 h-4 w-4 animate-spin" /> : <RefreshCw className="mr-2 h-4 w-4" />}
-                              {isScanning ? "Probing" : "Sync Device"}
-                            </Button>
-                          )}
+                            )}
+                          </div>
                         </div>
+
+                        {/* Animated Scanning Overlay */}
+                        {(printerState === 'scanning' || printerState === 'connecting') && (
+                          <div className="absolute inset-0 bg-white/60 backdrop-blur-[2px] flex flex-col items-center justify-center gap-4 z-20">
+                            <div className="relative h-20 w-20 sm:h-24 sm:w-24">
+                              <div className="absolute inset-0 bg-primary/20 rounded-full animate-ping" />
+                              <div className="relative h-20 w-20 sm:h-24 sm:w-24 rounded-full bg-white border border-slate-100 flex items-center justify-center shadow-2xl">
+                                 <RefreshCw className="h-8 w-8 sm:h-10 sm:w-10 text-primary animate-spin" />
+                              </div>
+                            </div>
+                            <div className="text-center px-4">
+                              <p className="text-[10px] sm:text-xs font-black uppercase tracking-[0.2em] text-primary mb-1">
+                                {printerState === 'scanning' ? "Discovering local nodes" : "Establishing secure tunnel"}
+                              </p>
+                              <p className="text-[8px] sm:text-[10px] font-bold text-slate-400 uppercase tracking-widest">
+                                {printerState === 'scanning' ? "Ensure peripheral is in pairing mode" : "Verifying protocol compatibility"}
+                              </p>
+                            </div>
+                          </div>
+                        )}
                       </div>
 
-                      {printerState === 'scanning' && (
-                        <motion.div 
-                          initial={{ opacity: 0, scale: 0.9 }} 
-                          animate={{ opacity: 1, scale: 1 }} 
-                          className="flex flex-col items-center justify-center p-8 sm:p-16 border-2 border-dashed border-slate-100 rounded-2xl bg-slate-50/20 gap-4 sm:gap-6"
-                        >
-                          <div className="relative h-16 w-16 sm:h-20 sm:w-20">
-                            <div className="absolute inset-0 bg-primary/20 rounded-full animate-ping" />
-                            <div className="relative h-16 w-16 sm:h-20 sm:w-20 rounded-full bg-white border border-slate-100 flex items-center justify-center shadow-lg">
-                               <RefreshCw className="h-6 w-6 sm:h-8 sm:w-8 text-primary animate-spin" />
-                            </div>
+                      {/* Hardware Help Cards */}
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
+                        <div className="p-6 sm:p-8 rounded-2xl bg-amber-50/50 border border-amber-100/50 flex gap-4 sm:gap-6 items-start">
+                          <div className="h-10 w-10 sm:h-12 sm:w-12 rounded-xl bg-amber-100 flex items-center justify-center shrink-0">
+                            <Zap className="h-5 w-5 sm:h-6 sm:w-6 text-amber-600" />
                           </div>
-                          <div className="text-center">
-                            <p className="text-xs sm:text-sm font-black uppercase tracking-[0.2em] sm:tracking-[0.3em] text-primary">Discovering local nodes</p>
-                            <p className="text-[10px] font-bold text-slate-400 mt-2">Ensure printer is in pairing mode</p>
+                          <div className="space-y-1">
+                            <p className="text-xs sm:text-sm font-black text-amber-900 uppercase tracking-wider">Quick Connect</p>
+                            <p className="text-[10px] sm:text-xs font-medium text-amber-700/70 leading-relaxed">
+                              Most printers use "0000" or "1234" as pairing code if requested by system.
+                            </p>
                           </div>
-                        </motion.div>
-                      )}
+                        </div>
+                        <div className="p-6 sm:p-8 rounded-2xl bg-blue-50/50 border border-blue-100/50 flex gap-4 sm:gap-6 items-start">
+                          <div className="h-10 w-10 sm:h-12 sm:w-12 rounded-xl bg-blue-100 flex items-center justify-center shrink-0">
+                            <AlertCircle className="h-5 w-5 sm:h-6 sm:w-6 text-blue-600" />
+                          </div>
+                          <div className="space-y-1">
+                            <p className="text-xs sm:text-sm font-black text-blue-900 uppercase tracking-wider">Interface Note</p>
+                            <p className="text-[10px] sm:text-xs font-medium text-blue-700/70 leading-relaxed">
+                              On Android, ensure Location access is granted to allow Bluetooth scanning.
+                            </p>
+                          </div>
+                        </div>
+                      </div>
                     </CardContent>
                   </Card>
                 </div>
