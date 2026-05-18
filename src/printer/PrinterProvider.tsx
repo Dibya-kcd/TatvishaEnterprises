@@ -1,15 +1,22 @@
 import React, { createContext, useContext, useState, ReactNode, useRef } from 'react';
 import { PrinterContext, type PrinterState, type PrinterDevice, type PrinterContextType } from './PrinterContextCore';
 import { WebBluetoothAdapter } from './adapters/WebBluetoothAdapter';
+import { CapacitorBluetoothAdapter } from './adapters/CapacitorBluetoothAdapter';
+import { Capacitor } from '@capacitor/core';
+import { PrinterAdapter } from './adapters/PrinterAdapter';
 
 export const PrinterProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const [state, setState] = useState<PrinterState>('disconnected');
   const [connectedDevice, setConnectedDevice] = useState<PrinterDevice | null>(null);
-  const adapterRef = useRef<WebBluetoothAdapter | null>(null);
+  const adapterRef = useRef<PrinterAdapter | null>(null);
 
   const getAdapter = () => {
     if (!adapterRef.current) {
-      adapterRef.current = new WebBluetoothAdapter();
+      if (Capacitor.isNativePlatform()) {
+        adapterRef.current = new CapacitorBluetoothAdapter();
+      } else {
+        adapterRef.current = new WebBluetoothAdapter();
+      }
     }
     return adapterRef.current;
   };
@@ -18,12 +25,10 @@ export const PrinterProvider: React.FC<{ children: ReactNode }> = ({ children })
     try {
       setState('connecting');
       const adapter = getAdapter();
-      // If we have a device from scan, pass it. WebBluetooth usually requests it via scan/navigator.bluetooth.requestDevice
-      // But we can also pass the raw device if we stored it.
-      await adapter.connect(device?.rawDevice as BluetoothDevice);
+      await adapter.connect(device?.rawDevice);
       
       setConnectedDevice({
-        name: (device?.rawDevice as BluetoothDevice)?.name || 'Bluetooth Printer',
+        name: device?.name || 'Bluetooth Printer',
         rawDevice: device?.rawDevice
       });
       setState('connected');
