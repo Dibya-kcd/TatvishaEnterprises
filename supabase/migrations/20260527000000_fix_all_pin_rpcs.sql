@@ -15,7 +15,7 @@ BEGIN
   FROM public.profiles p
   INNER JOIN public.user_roles ur ON ur.user_id = p.id
   INNER JOIN public.salesperson_pins sp ON sp.profile_id = p.id
-  WHERE (ur.role = 'salesperson' OR ur.role = 'sales')
+  WHERE ur.role = 'salesperson'
     AND sp.is_active = true
   ORDER BY p.full_name;
 END;
