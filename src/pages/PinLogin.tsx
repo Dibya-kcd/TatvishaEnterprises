@@ -38,19 +38,22 @@ export default function PinLogin() {
   const fetchSalespersons = React.useCallback(async () => {
     setLoading(true);
     try {
-      const { data, error } = await supabase.rpc('get_staff_list_v1');
+      // Prioritize get_salesperson_list as it is the most up-to-date RPC
+      const { data, error } = await supabase.rpc('get_salesperson_list');
+      
       if (error) {
-        // If RPC missing, try the other one
-        const { data: altData, error: altError } = await supabase.rpc('get_salesperson_list');
-        if (altError) throw altError;
-        setSalespersons(altData as Salesperson[] || []);
+        console.warn('RPC get_salesperson_list failed, trying fallback...', error);
+        // Fallback to get_staff_list_v1 if the first one fails
+        const { data: fallbackData, error: fallbackError } = await supabase.rpc('get_staff_list_v1');
+        if (fallbackError) throw fallbackError;
+        setSalespersons(fallbackData as Salesperson[] || []);
       } else {
         setSalespersons(data as Salesperson[] || []);
       }
-    } catch (e: unknown) {
-      console.error('[Context]', e);
-      toast.error("Setup Required", {
-        description: "No salespeople with active PINs were found. Please set up PINs in the Admin panel.",
+    } catch (e: any) {
+      console.error('[PinLogin] Failed to fetch staff:', e);
+      toast.error("Database Connection Issue", {
+        description: e.message || "Could not load staff list. Please ensure database migrations are up to date.",
       });
     } finally {
       setLoading(false);
