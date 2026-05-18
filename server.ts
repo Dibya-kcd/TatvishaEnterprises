@@ -3,12 +3,7 @@ import { createServer } from 'http';
 import { Server } from 'socket.io';
 import { createServer as createViteServer } from 'vite';
 import path from 'path';
-import { fileURLToPath } from 'url';
-import { v4 as uuidv4 } from 'uuid';
 import { GoogleGenAI } from '@google/genai';
-
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
 
 async function startServer() {
   const app = express();
@@ -24,33 +19,37 @@ async function startServer() {
 
   const PORT = 3000;
 
-  // Gemini Setup
-  const genAI = new GoogleGenAI(process.env.GEMINI_API_KEY || "");
   const MODEL_NAME = "gemini-1.5-flash"; // More stable than preview for production
 
   // Gemini Proxy Routes
   app.post('/api/gemini/generate', async (req, res) => {
     try {
-      const { prompt, fileData, mimeType } = req.body;
-      const model = genAI.getGenerativeModel({ model: MODEL_NAME });
-      
-      let result;
-      if (fileData) {
-        result = await model.generateContent([
-          {
-            inlineData: {
-              data: fileData,
-              mimeType
-            }
-          },
-          { text: prompt }
-        ]);
-      } else {
-        result = await model.generateContent(prompt);
+      const apiKey = process.env.GEMINI_API_KEY;
+      if (!apiKey) {
+        res.status(503).json({ error: 'AI generation is not configured' });
+        return;
       }
 
-      const response = await result.response;
-      res.json({ text: response.text() });
+      const genAI = new GoogleGenAI({ apiKey });
+      const { prompt, fileData, mimeType } = req.body;
+      const contents = fileData
+        ? [
+            {
+              inlineData: {
+                data: fileData,
+                mimeType
+              }
+            },
+            { text: prompt }
+          ]
+        : prompt;
+
+      const result = await genAI.models.generateContent({
+        model: MODEL_NAME,
+        contents,
+      });
+
+      res.json({ text: result.text });
     } catch (error) {
       console.error('Gemini Proxy Error:', error);
       res.status(500).json({ error: error instanceof Error ? error.message : 'AI generation failed' });
@@ -105,7 +104,7 @@ async function startServer() {
   });
 
   // Vite middleware for development
-  if (process.env.NODE_ENV !== 'production') {
+  if (process.env.NODE_ENV === 'development') {
     const vite = await createViteServer({
       server: { middlewareMode: true },
       appType: 'spa',
@@ -114,7 +113,7 @@ async function startServer() {
   } else {
     const distPath = path.join(process.cwd(), 'dist');
     app.use(express.static(distPath));
-    app.get('*', (req, res) => {
+    app.use((req, res) => {
       res.sendFile(path.join(distPath, 'index.html'));
     });
   }

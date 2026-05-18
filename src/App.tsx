@@ -1,6 +1,7 @@
 import { QueryClient, QueryClientProvider, QueryCache, MutationCache } from "@tanstack/react-query";
 import * as Sentry from "@sentry/react";
-import { BrowserRouter, Route, Routes } from "react-router-dom";
+import { Capacitor } from "@capacitor/core";
+import { BrowserRouter, HashRouter, Route, Routes } from "react-router-dom";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { toast } from "sonner";
 import { friendlyError } from "@/lib/errors";
@@ -43,6 +44,9 @@ import { PrinterProvider } from "./printer/PrinterProvider";
 
 import { ErrorBoundary } from "./components/ErrorBoundary";
 
+const Router = Capacitor.isNativePlatform() ? HashRouter : BrowserRouter;
+const browserBasename = import.meta.env.BASE_URL === "./" ? undefined : import.meta.env.BASE_URL;
+
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
@@ -73,7 +77,7 @@ const App = () => (
       <TooltipProvider>
         <Sonner position="top-center" expand visibleToasts={6} richColors closeButton />
         <PrinterProvider>
-          <BrowserRouter basename={import.meta.env.BASE_URL}>
+          <Router basename={Capacitor.isNativePlatform() ? undefined : browserBasename}>
             <PinAuthProvider>
               <AuthProvider>
                 <Routes>
@@ -114,7 +118,7 @@ const App = () => (
             </Routes>
           </AuthProvider>
         </PinAuthProvider>
-      </BrowserRouter>
+      </Router>
       </PrinterProvider>
     </TooltipProvider>
   </QueryClientProvider>

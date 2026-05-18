@@ -6,14 +6,14 @@
   "type": "module",
   "scripts": {
     "dev": "tsx server.ts",
-    "build": "vite build && esbuild server.ts --bundle --platform=node --format=cjs --packages=external --sourcemap --outfile=dist/server.cjs",
+    "build": "vite build && esbuild server.ts --bundle --platform=node --format=esm --packages=external --sourcemap --outfile=dist/server.mjs",
     "build:dev": "vite build --mode development",
     "cap:sync": "npx cap sync",
     "cap:open": "npx cap open android",
     "cap:add": "npx cap add android",
     "lint": "eslint .",
     "test": "vitest run",
-    "start": "node dist/server.cjs"
+    "start": "node dist/server.mjs"
   },
   "dependencies": {
     "@capacitor-community/bluetooth-le": "^8.1.3",
