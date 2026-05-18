@@ -266,7 +266,7 @@ export function useOrderDraft({ editId, initialShopId }: UseOrderDraftProps = {}
   const saveDraft = useCallback(async () => {
     // Never auto-save when editing an existing order that is already past draft stage.
     // Auto-save is only safe for true new drafts (no editId) or orders still in draft status.
-    if (!currentUser || lines.length === 0 || !shopId || savingRef.current || (editId && originalStatus !== 'draft')) return;
+    if (!currentUser?.id || lines.length === 0 || !shopId || savingRef.current || (editId && originalStatus !== 'draft')) return;
 
     const activeLines = lines.filter(l => !l.isRemoved);
     if (activeLines.length === 0 && lines.length > 0) return; // All removed, wait for more actions
@@ -314,7 +314,7 @@ export function useOrderDraft({ editId, initialShopId }: UseOrderDraftProps = {}
         };
       });
 
-      const { data: newId, error: rpcError } = await supabase.rpc('save_draft_order_v3', {
+      const { data: newId, error: rpcError } = await supabase.rpc('save_draft_order_v4', {
         p_order_id: persistedId || null,
         p_order_data: orderPayload,
         p_items: itemsPayload
