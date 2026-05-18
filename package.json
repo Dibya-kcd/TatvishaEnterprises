@@ -16,10 +16,10 @@
     "start": "node dist/server.mjs"
   },
   "dependencies": {
-    "@capacitor/android": "^8.3.4",
-    "@capacitor/cli": "^8.3.4",
-    "@capacitor/core": "^8.3.4",
-    "@capacitor-community/bluetooth-le": "^6.0.0",
+    "@capacitor-community/bluetooth-le": "6.1.0",
+    "@capacitor/android": "6.2.0",
+    "@capacitor/cli": "6.2.0",
+    "@capacitor/core": "6.2.0",
     "@google/genai": "^1.50.1",
     "@hookform/resolvers": "^3.10.0",
     "@radix-ui/react-accordion": "^1.2.12",
