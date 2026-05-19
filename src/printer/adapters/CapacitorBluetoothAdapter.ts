@@ -1,6 +1,6 @@
 import { BleClient } from '@capacitor-community/bluetooth-le';
 import { Capacitor } from '@capacitor/core';
-import { DiscoveredDevice, PrinterAdapter } from "./PrinterAdapter";
+import { DiscoveredDevice, PrinterAdapter } from './PrinterAdapter';
 import { ThermalPrinterNative } from './ThermalPrinterNative';
 
 function numberToUUID(shortId: number): string {
@@ -20,6 +20,28 @@ type BleDevice = {
   name?: string;
 };
 
+type PrinterBridgeDevice = {
+  name?: string;
+  address?: string;
+  mac?: string;
+  protocol?: 'classic';
+  paired?: boolean;
+};
+
+type PrinterBridgeResult = {
+  ok?: boolean;
+  error?: string;
+};
+
+declare global {
+  interface Window {
+    PrinterBridge?: {
+      getPairedDevices: () => string;
+      printBase64: (mac: string, b64: string) => string;
+    };
+  }
+}
+
 export class CapacitorBluetoothAdapter implements PrinterAdapter {
   private deviceId: string | null = null;
   private protocol: 'ble' | 'classic' | null = null;
@@ -33,61 +55,25 @@ export class CapacitorBluetoothAdapter implements PrinterAdapter {
     if (Capacitor.isNativePlatform()) {
       try {
         await BleClient.initialize();
-      } catch (e) {
-        console.error("BLE Init failed:", e);
+      } catch (error) {
+        console.error('BLE init failed:', error);
       }
     }
   }
 
   async scan(): Promise<DiscoveredDevice[]> {
     if (!Capacitor.isNativePlatform()) {
-      throw new Error("Capacitor Bluetooth requires a native platform");
+      throw new Error('Capacitor Bluetooth requires a native platform');
     }
 
     const discovered: DiscoveredDevice[] = [];
+    this.addBridgePairedDevices(discovered);
 
-    try {
-      const classic = await ThermalPrinterNative.scanClassic();
-      for (const device of classic.devices || []) {
-        discovered.push({
-          id: device.id || device.address || device.name,
-          address: device.address,
-          name: device.name || 'Bluetooth Printer',
-          protocol: 'classic',
-          paired: device.paired,
-          rawDevice: device,
-        });
-      }
-    } catch (error) {
-      console.warn('Classic Bluetooth scan failed:', error);
+    if (discovered.length === 0) {
+      await this.addNativeClassicDevices(discovered);
     }
 
-    try {
-      const bleDevice = await BleClient.requestDevice({
-        services: PRINTER_SERVICE_UUIDS.map(u => {
-          const parts = u.split('-');
-          if (parts.length > 1 && parts[0].startsWith('0000')) {
-               return numberToUUID(parseInt(parts[0], 16));
-          }
-          return u;
-        }),
-        optionalServices: PRINTER_SERVICE_UUIDS,
-      }) as BleDevice;
-
-      if (bleDevice?.deviceId) {
-        discovered.push({
-          id: bleDevice.deviceId,
-          name: bleDevice.name || 'BLE Printer',
-          protocol: 'ble',
-          rawDevice: bleDevice,
-        });
-      }
-    } catch (error) {
-      if (discovered.length === 0) {
-        throw error;
-      }
-      console.warn('BLE scan skipped or cancelled:', error);
-    }
+    await this.addBleDevice(discovered);
 
     if (discovered.length === 0) {
       throw new Error('No Bluetooth thermal printer found. Pair classic printers in Android Bluetooth settings, then scan again.');
@@ -103,16 +89,22 @@ export class CapacitorBluetoothAdapter implements PrinterAdapter {
     const device = rawDevice && typeof rawDevice === 'object' ? rawDevice : deviceOrId;
     const protocol = typeof device === 'object' && device?.protocol === 'classic' ? 'classic' : 'ble';
     const id = typeof device === 'string' ? device : device?.address || device?.deviceId || device?.id;
-    if (!id) throw new Error('Bluetooth printer id is missing');
+
+    if (!id) {
+      throw new Error('Bluetooth printer id is missing');
+    }
+
     this.deviceId = id;
     this.protocol = protocol;
 
     if (protocol === 'classic') {
-      await ThermalPrinterNative.connectClassic({ address: id });
+      if (!this.hasPrinterBridge()) {
+        await ThermalPrinterNative.connectClassic({ address: id });
+      }
     } else {
       await BleClient.connect(id, () => {
         this._connected = false;
-        console.warn("Capacitor BLE Disconnected");
+        console.warn('Capacitor BLE disconnected');
       });
     }
 
@@ -120,41 +112,142 @@ export class CapacitorBluetoothAdapter implements PrinterAdapter {
   }
 
   async print(data: Uint8Array): Promise<void> {
-    if (!this.deviceId || !this._connected) throw new Error("Not connected");
+    if (!this.deviceId || !this._connected) {
+      throw new Error('Not connected');
+    }
 
     if (this.protocol === 'classic') {
+      if (this.hasPrinterBridge()) {
+        const response = window.PrinterBridge.printBase64(this.deviceId, this.toBase64(data));
+        const result = JSON.parse(response || '{}') as PrinterBridgeResult;
+        if (result.ok === false) {
+          throw new Error(result.error || 'Classic Bluetooth print failed');
+        }
+        return;
+      }
+
       await ThermalPrinterNative.writeClassic({ data: this.toBase64(data) });
       return;
     }
 
-    // Use the first service/char for now or discover them
-    // Real implementation would be more robust like WebBluetoothAdapter
-    const MTU = 20; // Default BLE MTU is usually small
-    for (let i = 0; i < data.length; i += MTU) {
-        const chunk = data.slice(i, i + MTU);
-        await BleClient.writeWithoutResponse(
-            this.deviceId,
-            PRINTER_SERVICE_UUIDS[0],
-            WRITE_CHARACTERISTIC,
-            new DataView(chunk.buffer)
-        );
+    const mtu = 20;
+    for (let i = 0; i < data.length; i += mtu) {
+      const chunk = data.slice(i, i + mtu);
+      await BleClient.writeWithoutResponse(
+        this.deviceId,
+        PRINTER_SERVICE_UUIDS[0],
+        WRITE_CHARACTERISTIC,
+        new DataView(chunk.buffer)
+      );
     }
   }
 
   async disconnect(): Promise<void> {
     if (this.deviceId) {
       if (this.protocol === 'classic') {
-        await ThermalPrinterNative.disconnectClassic();
+        if (!this.hasPrinterBridge()) {
+          await ThermalPrinterNative.disconnectClassic();
+        }
       } else {
         await BleClient.disconnect(this.deviceId);
       }
     }
+
     this._connected = false;
     this.protocol = null;
   }
 
   isConnected(): boolean {
     return this._connected;
+  }
+
+  private addBridgePairedDevices(discovered: DiscoveredDevice[]) {
+    for (const device of this.getBridgePairedDevices()) {
+      const address = device.address || device.mac;
+      if (!address) continue;
+
+      discovered.push({
+        id: address,
+        address,
+        name: device.name || 'Bluetooth Printer',
+        protocol: 'classic',
+        paired: true,
+        rawDevice: {
+          ...device,
+          id: address,
+          address,
+          protocol: 'classic',
+          paired: true,
+          source: 'PrinterBridge',
+        },
+      });
+    }
+  }
+
+  private async addNativeClassicDevices(discovered: DiscoveredDevice[]) {
+    try {
+      const classic = await ThermalPrinterNative.scanClassic();
+      for (const device of classic.devices || []) {
+        discovered.push({
+          id: device.id || device.address || device.name,
+          address: device.address,
+          name: device.name || 'Bluetooth Printer',
+          protocol: 'classic',
+          paired: device.paired,
+          rawDevice: device,
+        });
+      }
+    } catch (error) {
+      console.warn('Classic Bluetooth scan failed:', error);
+    }
+  }
+
+  private async addBleDevice(discovered: DiscoveredDevice[]) {
+    try {
+      const bleDevice = await BleClient.requestDevice({
+        services: PRINTER_SERVICE_UUIDS.map((uuid) => {
+          const parts = uuid.split('-');
+          if (parts.length > 1 && parts[0].startsWith('0000')) {
+            return numberToUUID(parseInt(parts[0], 16));
+          }
+          return uuid;
+        }),
+        optionalServices: PRINTER_SERVICE_UUIDS,
+      }) as BleDevice;
+
+      if (bleDevice?.deviceId && !discovered.some((device) => device.id === bleDevice.deviceId)) {
+        discovered.push({
+          id: bleDevice.deviceId,
+          name: bleDevice.name || 'BLE Printer',
+          protocol: 'ble',
+          rawDevice: bleDevice,
+        });
+      }
+    } catch (error) {
+      if (discovered.length === 0) {
+        throw error;
+      }
+      console.warn('BLE scan skipped or cancelled:', error);
+    }
+  }
+
+  private getBridgePairedDevices(): PrinterBridgeDevice[] {
+    if (!this.hasPrinterBridge()) {
+      return [];
+    }
+
+    try {
+      const raw = window.PrinterBridge.getPairedDevices();
+      const devices = JSON.parse(raw || '[]');
+      return Array.isArray(devices) ? devices : [];
+    } catch (error) {
+      console.warn('PrinterBridge paired device read failed:', error);
+      return [];
+    }
+  }
+
+  private hasPrinterBridge(): window is Window & { PrinterBridge: NonNullable<Window['PrinterBridge']> } {
+    return typeof window !== 'undefined' && !!window.PrinterBridge;
   }
 
   private toBase64(data: Uint8Array): string {
