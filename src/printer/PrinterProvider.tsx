@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, ReactNode, useRef } from 'react';
+import React, { useState, ReactNode, useRef } from 'react';
 import { PrinterContext, type PrinterState, type PrinterDevice, type PrinterContextType } from './PrinterContextCore';
 import { WebBluetoothAdapter } from './adapters/WebBluetoothAdapter';
 import { CapacitorBluetoothAdapter } from './adapters/CapacitorBluetoothAdapter';
@@ -9,6 +9,7 @@ export const PrinterProvider: React.FC<{ children: ReactNode }> = ({ children })
   const [state, setState] = useState<PrinterState>('disconnected');
   const [errorReason, setErrorReason] = useState<string | null>(null);
   const [connectedDevice, setConnectedDevice] = useState<PrinterDevice | null>(null);
+  const [discoveredDevices, setDiscoveredDevices] = useState<PrinterDevice[]>([]);
   const [isSimulated, setIsSimulated] = useState(false);
   const adapterRef = useRef<PrinterAdapter | null>(null);
 
@@ -36,11 +37,15 @@ export const PrinterProvider: React.FC<{ children: ReactNode }> = ({ children })
       }
 
       const adapter = getAdapter();
-      await adapter.connect(device?.rawDevice as BluetoothDevice);
+      await adapter.connect(device?.rawDevice ?? device);
       
       setConnectedDevice({
-        name: (device?.rawDevice as BluetoothDevice)?.name || 'Bluetooth Printer',
-        rawDevice: device?.rawDevice
+        id: device?.id,
+        address: device?.address,
+        protocol: device?.protocol,
+        paired: device?.paired,
+        name: device?.name || (device?.rawDevice as BluetoothDevice)?.name || 'Bluetooth Printer',
+        rawDevice: device?.rawDevice ?? device
       });
       setState('connected');
     } catch (error) {
@@ -81,15 +86,29 @@ export const PrinterProvider: React.FC<{ children: ReactNode }> = ({ children })
       }
 
       const adapter = getAdapter();
-      const device = await adapter.scan();
+      const devices = await adapter.scan();
       
-      const printerDevice: PrinterDevice = {
-        name: device.name || 'Unknown Printer',
-        rawDevice: device
-      };
+      const printerDevices: PrinterDevice[] = devices.map((device) => {
+        const item = device as PrinterDevice & BluetoothDevice & { deviceId?: string };
+        return {
+          id: item.id || item.deviceId || item.address,
+          address: item.address,
+          protocol: item.protocol,
+          paired: item.paired,
+          name: item.name || 'Unknown Printer',
+          rawDevice: item.rawDevice ?? device
+        };
+      });
+
+      setDiscoveredDevices(printerDevices);
       
-      await connect(printerDevice);
-      return [printerDevice];
+      if (printerDevices.length === 1) {
+        await connect(printerDevices[0]);
+      } else {
+        setState('disconnected');
+      }
+
+      return printerDevices;
     } catch (error) {
       console.error('Scan failed:', error);
       setErrorReason(error instanceof Error ? error.message : 'Bluetooth scan rejected');
@@ -118,6 +137,7 @@ export const PrinterProvider: React.FC<{ children: ReactNode }> = ({ children })
       state, 
       errorReason, 
       connectedDevice, 
+      discoveredDevices,
       connect, 
       disconnect, 
       scan, 

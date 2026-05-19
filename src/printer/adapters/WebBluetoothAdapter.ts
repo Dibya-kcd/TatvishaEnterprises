@@ -18,14 +18,14 @@ export class WebBluetoothAdapter implements PrinterAdapter {
   private notifyChar: BluetoothRemoteGATTCharacteristic | null = null;
   private _connected = false;
 
-  async scan(): Promise<BluetoothDevice> {
+  async scan(): Promise<BluetoothDevice[]> {
     if (!navigator.bluetooth) {
       throw new Error("Web Bluetooth API is not available in this browser or environment.");
     }
     
     try {
       // @ts-expect-error - Web Bluetooth API might be missing in some environments
-      return await navigator.bluetooth.requestDevice({
+      const device = await navigator.bluetooth.requestDevice({
         filters: [
           { services: PRINTER_SERVICE_UUIDS },
           { namePrefix: 'Printer' },
@@ -36,6 +36,7 @@ export class WebBluetoothAdapter implements PrinterAdapter {
         ],
         optionalServices: PRINTER_SERVICE_UUIDS,
       });
+      return [device];
     } catch (error: unknown) {
       const err = error as Error;
       if (err.name === 'SecurityError') {
@@ -49,7 +50,12 @@ export class WebBluetoothAdapter implements PrinterAdapter {
   }
 
   async connect(rawDevice?: BluetoothDevice): Promise<void> {
-    this.device = rawDevice ?? await this.scan();
+    if (rawDevice) {
+      this.device = rawDevice;
+    } else {
+      const devices = await this.scan();
+      this.device = devices[0];
+    }
 
     if (!this.device.gatt) throw new Error("GATT not supported on this device");
     

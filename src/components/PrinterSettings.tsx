@@ -26,7 +26,9 @@ export function PrinterSettings() {
     state, 
     errorReason, 
     connectedDevice, 
+    discoveredDevices,
     scan, 
+    connect,
     disconnect, 
     print 
   } = usePrinter();
@@ -71,7 +73,7 @@ export function PrinterSettings() {
 
   const steps = [
     { id: 1, label: "Turn on printer", desc: "Ensure Bluetooth is enabled", active: true, completed: state === 'connected' || state === 'connecting' || state === 'scanning' },
-    { id: 2, label: "Scan & Connect", desc: "Pair your thermal device", active: state === 'disconnected' || state === 'scanning' || state === 'connecting', completed: state === 'connected' },
+    { id: 2, label: "Scan & Connect", desc: "Choose BLE or classic printer", active: state === 'disconnected' || state === 'scanning' || state === 'connecting', completed: state === 'connected' },
     { id: 3, label: "Test Print", desc: "Verify connection works", active: state === 'connected', completed: false }
   ];
 
@@ -174,6 +176,41 @@ export function PrinterSettings() {
               )}
             </AnimatePresence>
 
+            {state !== 'connected' && discoveredDevices && discoveredDevices.length > 0 && (
+              <div className="w-full space-y-3">
+                <div className="flex items-center justify-between">
+                  <p className="text-xs font-black uppercase tracking-widest text-slate-500">Available printers</p>
+                  <Badge variant="secondary" className="rounded-md text-[10px] font-bold">
+                    {discoveredDevices.length}
+                  </Badge>
+                </div>
+                <div className="space-y-2">
+                  {discoveredDevices.map((device) => (
+                    <Button
+                      key={`${device.protocol || 'bt'}-${device.id || device.address || device.name}`}
+                      variant="outline"
+                      onClick={() => connect(device)}
+                      disabled={state === 'connecting' || state === 'scanning'}
+                      className="h-auto min-h-14 w-full justify-between rounded-xl border-slate-200 px-4 py-3 text-left"
+                    >
+                      <span className="flex min-w-0 items-center gap-3">
+                        <Bluetooth className="h-5 w-5 shrink-0 text-primary" />
+                        <span className="min-w-0">
+                          <span className="block truncate text-sm font-black text-slate-900">{device.name}</span>
+                          <span className="block truncate text-[11px] font-semibold text-slate-400">
+                            {device.protocol === 'classic' ? 'Classic SPP' : 'BLE'}
+                            {device.paired ? ' • Paired' : ''}
+                            {device.address ? ` • ${device.address}` : ''}
+                          </span>
+                        </span>
+                      </span>
+                      <CheckCircle2 className="h-4 w-4 shrink-0 text-slate-300" />
+                    </Button>
+                  ))}
+                </div>
+              </div>
+            )}
+
             <div className="w-full flex flex-col sm:flex-row gap-4">
               {state !== 'connected' ? (
                 <Button 
@@ -205,7 +242,7 @@ export function PrinterSettings() {
           <div className="px-6 py-4 bg-slate-50/80 border-t flex flex-wrap items-center justify-center gap-4 text-slate-400">
             <p className="text-[10px] font-bold uppercase tracking-[0.1em] flex items-center gap-1.5">
               <Info size={12} />
-              Supports ESC/POS BLE Printers (58mm/80mm)
+              Supports ESC/POS Classic SPP and BLE Printers (58mm/80mm)
             </p>
           </div>
         </CardContent>
