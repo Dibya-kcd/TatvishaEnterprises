@@ -48,13 +48,13 @@ export const statusLabel: Record<string, string> = {
 };
 
 export const statusColor: Record<string, string> = {
-  draft: "bg-slate-100 text-slate-700",
-  pending_approval: "bg-status-pending/10 text-status-pending border border-status-pending/20",
-  approved: "bg-status-approved/10 text-status-approved border border-status-approved/20",
-  rejected: "bg-destructive/10 text-destructive border border-destructive/20",
-  dispatched: "bg-status-dispatched/10 text-status-dispatched border border-status-dispatched/20",
-  delivered: "bg-status-delivered/10 text-status-delivered border border-status-delivered/20",
-  cancelled: "bg-status-cancelled/10 text-status-cancelled border border-status-cancelled/20",
+  draft: "bg-slate-200 text-slate-700",
+  pending_approval: "bg-orange-500 text-white",
+  approved: "bg-blue-600 text-white",
+  rejected: "bg-red-600 text-white",
+  dispatched: "bg-violet-600 text-white",
+  delivered: "bg-emerald-600 text-white",
+  cancelled: "bg-slate-500 text-white",
 };
 
 export const payStatusLabel: Record<string, string> = {
@@ -77,8 +77,10 @@ export const formatPackLabel = (packType: string | null | undefined, fallback: s
   
   if (t === "case" || t === "carton" || t === "box" || t === "bag" || t === "ocs") return "Case";
   if (t === "packet" || t === "pkt" || t === "pack" || t === "pag") return "Packet";
-  if (t === "pcs" || t === "unit" || t === "pc" || t === "pouch" || t === "sachet") return "PCS";
-  if (t === "kg") return "Kg";
+  if (t === "pcs" || t === "unit" || t === "pc" || t === "pouch" || t === "sachet") return "Unit";
+  if (t === "kg" || t === "kilogram") return "Kg";
+  if (t === "ltr" || t === "l" || t === "liter" || t === "litre") return "Ltr";
+  if (t === "ml" || t === "milliliter") return "Ml";
   
   // Title case fallback
   return packType.charAt(0).toUpperCase() + packType.slice(1);

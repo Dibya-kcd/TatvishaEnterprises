@@ -112,18 +112,18 @@ export default function Shops() {
   ];
 
   return (
-    <div className="space-y-6 pb-24">
+    <div className="pb-24">
       <PageHeader
         title="Shops"
-        subtitle={`${shops?.filter(s => s.is_active).length || 0} active shops`}
+        titleColor="var(--color-brand-primary)"
         onBack={() => navigate("/")}
         actionLabel="Add shop"
         onAction={canAdd ? () => { setEdit(empty); setIsAddDialogOpen(true); } : undefined}
         actionIcon={<Plus className="mr-2 h-5 w-5" />}
       />
       
-      <div className="flex items-center justify-between gap-4">
-        <div className="flex-1">
+      <div className="flex flex-col md:flex-row items-center justify-between gap-4 mt-2">
+        <div className="flex-1 w-full glass-panel rounded-3xl p-1.5 shadow-md border border-white/30">
           <SearchFilterBar
             categories={shopCategories}
             filters={shopFilters}
@@ -137,8 +137,8 @@ export default function Shops() {
             onClearFilters={clearFilters}
           />
         </div>
-        <div className="flex items-center gap-2 bg-muted/40 px-3 py-2 rounded-xl border border-border/40 shrink-0 overflow-x-auto">
-          <Label htmlFor="show-inactive-shops" className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider cursor-pointer whitespace-nowrap">
+        <div className="flex items-center gap-2 glass-panel px-4 py-3 rounded-2xl border border-white/30 shadow-md shrink-0">
+          <Label htmlFor="show-inactive-shops" className="text-[10px] font-black text-muted-foreground uppercase tracking-widest cursor-pointer whitespace-nowrap opacity-60">
             Show Inactive
           </Label>
           <Switch 
@@ -189,7 +189,7 @@ export default function Shops() {
               className: "font-black text-slate-900 tracking-tight",
             },
             {
-              header: "Proprietor",
+              header: "Owner",
               accessorKey: "owner_name",
               className: "text-muted-foreground font-medium",
               hideOnMobile: true,
@@ -254,7 +254,7 @@ function ShopCard({ shop: s, onEdit, onSelect }: { shop: Shop; onEdit?: () => vo
   return (
     <ListCard
       title={s.name}
-      subtitle={s.owner_name || "No proprietor"}
+      subtitle={s.owner_name || "No owner"}
       badge={
         <div className="flex gap-1">
           {!s.is_active && (
@@ -272,14 +272,14 @@ function ShopCard({ shop: s, onEdit, onSelect }: { shop: Shop; onEdit?: () => vo
       }
       meta={
         <div className="space-y-2 min-h-0">
-          <div className="flex items-center gap-4 text-[11px] text-muted-foreground">
+          <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 text-[11px] text-muted-foreground">
             <div className="flex items-center gap-1.5 min-w-0">
               <Phone className="h-3 w-3 opacity-50 shrink-0" />
-              <span className="truncate">{s.phone || "—"}</span>
+              <span className="whitespace-normal break-words">{s.phone || "—"}</span>
             </div>
             <div className="flex items-center gap-1.5 min-w-0">
               <MapPin className="h-3 w-3 opacity-50 shrink-0" />
-              <span className="truncate">{s.address || "—"}</span>
+              <span className="whitespace-normal break-words">{s.address || "—"}</span>
             </div>
           </div>
           <div className="flex items-center justify-between pt-2 border-t border-border/40">

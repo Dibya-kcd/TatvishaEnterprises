@@ -142,7 +142,7 @@ export default function Products() {
   };
 
   return (
-    <div className="space-y-6 pb-24">
+    <div className="pb-24">
       <ProductDrawer 
         productId={selectedProductId}
         open={isDrawerOpen}
@@ -152,7 +152,7 @@ export default function Products() {
       
       <PageHeader
         title="Products"
-        subtitle="Catalog and inventory manifest"
+        titleColor="var(--color-brand-primary)"
         onBack={() => navigate("/")}
         action={
           <div className="flex gap-2 items-center">
@@ -166,7 +166,7 @@ export default function Products() {
                   disabled={healing}
                 >
                   {healing ? <Loader2 className="h-4 w-4 animate-spin text-primary" /> : <Zap className="h-4 w-4 text-primary" />} 
-                  <span className="hidden sm:inline text-slate-600">Heal Data</span>
+                  <span className="hidden sm:inline text-slate-600">Fix Data</span>
                 </Button>
                 <Button 
                   variant="outline"
@@ -183,7 +183,7 @@ export default function Products() {
                   onClick={handleNewItem}
                 >
                   <Plus className="h-4 w-4" /> 
-                  <span>New item</span>
+                  <span>Add Product</span>
                 </Button>
               </>
             )}
@@ -191,14 +191,14 @@ export default function Products() {
         }
       />
 
-      <div className="grid grid-cols-2 lg:grid-cols-5 gap-4">
-        <StatsCard label="Total SKUs" value={stats.total} />
+      <div className="grid grid-cols-2 lg:grid-cols-5 gap-4 mt-2">
+        <StatsCard label="Total Products" value={stats.total} />
         <StatsCard label="Active" value={stats.active} color="emerald" />
         <StatsCard label="Low stock" value={stats.lowStock} color="amber" />
         <StatsCard label="Out of stock" value={stats.outOfStock} color="rose" />
         <div className="hidden lg:flex flex-col gap-1 bg-primary/5 border border-primary/10 rounded-2xl p-4 shadow-sm">
-           <span className="text-[10px] font-black uppercase text-primary/40 tracking-wider">Growth</span>
-           <span className="text-2xl font-black text-primary">+12%</span>
+           <span className="text-[10px] font-bold uppercase text-primary/40 tracking-wider">Growth</span>
+           <span className="text-2xl font-bold text-primary">+12%</span>
         </div>
       </div>
 
@@ -347,21 +347,21 @@ export default function Products() {
               <Zap className="h-8 w-8" />
             </div>
             <AlertDialogTitle className="text-2xl font-bold tracking-tight text-slate-900">
-              Standardize product data?
+              Clean up product info?
             </AlertDialogTitle>
             <AlertDialogDescription asChild>
               <div className="space-y-4 text-slate-600 font-medium leading-relaxed">
-                <div>This global administrative action will execute the following operations across the catalog:</div>
+                <div>This will standardize your catalog information:</div>
                 <ul className="space-y-2 list-disc list-inside text-xs font-medium text-slate-700 ml-1">
-                  <li>Standardize weight units (e.g. 'gms' → 'g')</li>
-                  <li>Sync base weight units across all records</li>
-                  <li>Normalize case and sell unit enums</li>
+                  <li>Fix weight labels (e.g. 'gms' to 'g')</li>
+                  <li>Sync weight units across records</li>
+                  <li>Standardize unit names</li>
                 </ul>
 
                 {healing && (
                   <div className="mt-4 p-4 bg-muted/50 rounded-xl space-y-2">
                     <div className="flex justify-between text-[10px] font-bold uppercase tracking-wider">
-                      <span>Standardizing Catalog</span>
+                      <span>Cleaning Catalog...</span>
                       <span>{healProgress.current} / {healProgress.total}</span>
                     </div>
                     <div className="w-full bg-border h-1.5 rounded-full overflow-hidden">
@@ -374,19 +374,19 @@ export default function Products() {
                 )}
 
                 <p className="text-xs font-bold text-red-500 bg-red-50 p-3 rounded-xl border border-red-100">
-                  Warning: This process cannot be automatically reversed.
+                  Note: This change cannot be undone easily.
                 </p>
               </div>
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter className="mt-8 gap-3">
-            {!healing && <AlertDialogCancel className="h-11 rounded-xl font-bold text-xs flex-1 border">Abort</AlertDialogCancel>}
+            {!healing && <AlertDialogCancel className="h-11 rounded-xl font-bold text-xs flex-1 border">Cancel</AlertDialogCancel>}
             <Button 
               className={cn("h-11 rounded-xl font-bold text-xs flex-[2] bg-primary hover:bg-primary/90 shadow-xl shadow-primary/20", healing && "opacity-50")}
               onClick={performHealData}
               disabled={healing}
             >
-              {healing ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : "Start standardization"}
+              {healing ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : "Start Cleaning"}
             </Button>
           </AlertDialogFooter>
         </AlertDialogContent>

@@ -13,7 +13,7 @@ interface ResponsiveContainerProps extends React.HTMLAttributes<HTMLDivElement> 
 export function ResponsiveContainer({ children, className, ...props }: ResponsiveContainerProps) {
   return (
     <div 
-      className={cn("mx-auto w-full max-w-[1400px] px-4 md:px-8 lg:px-12", className)} 
+      className={cn("w-full px-4 md:px-6 lg:px-8", className)} 
       {...props}
     >
       {children}
@@ -106,7 +106,7 @@ export function AdaptiveTable<T>({
   className,
   minWidth = "800px",
   isLoading,
-  emptyMessage = "No records found."
+  emptyMessage = "No items found."
 }: AdaptiveTableProps<T>) {
   const isMobile = useIsMobile();
   const isTablet = useIsTablet();
@@ -132,17 +132,17 @@ export function AdaptiveTable<T>({
            <div className="h-3 w-3 rounded-full bg-brand-primary animate-pulse" />
         </div>
         <div className="space-y-2">
-          <p className="text-xs font-black text-slate-400 uppercase tracking-[0.3em] leading-none mb-1">Database Empty</p>
+          <p className="text-xs font-black text-slate-400 uppercase tracking-[0.3em] leading-none mb-1">List is Empty</p>
           <p className="text-lg font-black text-slate-900 tracking-tight">{emptyMessage}</p>
         </div>
       </Card>
     );
   }
 
-  // Tablet Grid Layout (2 columns of cards)
+  // Tablet Grid Layout (1 column of spacious cards)
   if (isTablet && renderMobileCard) {
     return (
-      <div className={cn("grid grid-cols-2 gap-4", className)}>
+      <div className={cn("grid grid-cols-1 gap-4", className)}>
         {data.map((item) => (
           <div key={getRowKey(item)} onClick={() => onRowClick?.(item)} className={cn(onRowClick && "cursor-pointer active:scale-[0.98] transition-transform h-full")}>
             {renderMobileCard(item)}
@@ -199,7 +199,7 @@ export function AdaptiveTable<T>({
                 <th 
                   key={idx} 
                   className={cn(
-                    "px-10 py-6 text-[10px] font-black uppercase text-slate-400 tracking-[0.25em] whitespace-nowrap",
+                    "px-4 sm:px-6 md:px-8 py-5 text-[10px] font-black uppercase text-slate-400 tracking-[0.25em] whitespace-nowrap",
                     col.className
                   )}
                 >
@@ -219,7 +219,7 @@ export function AdaptiveTable<T>({
                 )}
               >
                 {columns.map((col, idx) => (
-                  <td key={idx} className={cn("px-10 py-7 text-sm font-bold text-slate-700 whitespace-nowrap group-hover:text-slate-900 transition-colors", col.className)}>
+                  <td key={idx} className={cn("px-4 sm:px-6 md:px-8 py-5 text-xs sm:text-sm font-bold text-slate-700 whitespace-normal group-hover:text-slate-900 transition-colors", col.className)}>
                     {col.render ? col.render(item) : col.accessorKey ? String(item[col.accessorKey]) : null}
                   </td>
                 ))}

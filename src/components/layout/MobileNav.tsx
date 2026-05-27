@@ -9,7 +9,7 @@ interface MobileNavProps {
 export function MobileNav({ navItems }: MobileNavProps) {
   return (
     <nav className="fixed inset-x-4 bottom-6 z-30 md:hidden animate-in fade-in slide-in-from-bottom-8 duration-500 delay-300">
-      <div className="mx-auto flex max-w-md items-center justify-around gap-1 p-2 rounded-2xl bg-card/95 backdrop-blur-xl shadow-2xl border border-border/50 safe-pb shadow-brand/10">
+      <div className="mx-auto flex max-w-md items-center justify-around gap-1 p-2 rounded-3xl glass-panel shadow-2xl border border-border/50 safe-pb shadow-brand/10">
         {navItems.map(({ to, label, icon: Icon, end }) => (
           <NavLink
             key={to}

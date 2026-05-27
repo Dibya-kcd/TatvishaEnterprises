@@ -13,6 +13,9 @@ const USER_MESSAGES: Record<string, string> = {
 
 export function friendlyError(err: unknown): string {
   const msg = err instanceof Error ? err.message : String(err)
+  if (msg.startsWith("Database Error: ")) {
+    return msg.replace("Database Error: ", "");
+  }
   for (const [key, friendly] of Object.entries(USER_MESSAGES)) {
     if (msg.toLowerCase().includes(key.toLowerCase())) return friendly
   }

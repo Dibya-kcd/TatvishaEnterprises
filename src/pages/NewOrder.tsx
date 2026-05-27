@@ -7,13 +7,14 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
-import { Search, Loader2, ShoppingBag, Store, Package, Trash2, ArrowLeft, Plus, Save, RefreshCw, Layers, Calendar, AlertTriangle, ChevronDown, ScanBarcode, Pencil, X } from "lucide-react";
+import { Search, Loader2, ShoppingBag, Store, Package, Trash2, ArrowLeft, Plus, Save, RefreshCw, Layers, Calendar, AlertTriangle, ChevronDown, ScanBarcode, Pencil, X, Check } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
 import { friendlyError } from "@/lib/errors";
 import { fmtINR } from "@/lib/format";
 import { formatStockDisplay } from "@/lib/packaging";
 import { PricingProduct, PackType, getPackMultiplier } from "@/lib/pricing";
+import { useQueryClient } from "@tanstack/react-query";
 
 import { clampOrderDate } from "@/lib/dates";
 
@@ -50,7 +51,6 @@ import {
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
 import { motion, AnimatePresence } from "motion/react";
-import { Check } from "lucide-react";
 
 type Warehouse = {
   id: string;
@@ -72,6 +72,7 @@ export default function NewOrder() {
   const currentUser = useCurrentUser();
   const isAdmin = currentUser?.role === "admin" || currentUser?.role === "owner";
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
 
   const {
     shopId, setShopId,
@@ -87,6 +88,7 @@ export default function NewOrder() {
     totals,
     loading: loadingDraft,
     persistedId,
+    orderNumber,
     originalStatus,
     addProduct,
     removeLine,
@@ -312,7 +314,7 @@ export default function NewOrder() {
       
       if (error) {
         if (error.code === 'PGRST116') {
-          toast.error("SKU mismatch: Entry not found in current warehouse pool");
+          toast.error("Product mismatch: Entry not found in current warehouse pool");
         } else {
           toast.error(friendlyError(error));
         }
@@ -428,8 +430,8 @@ export default function NewOrder() {
   }, [shopId, shops, setPriceTiers, setPriceOverrides, setOutstandingBalance]);
 
   const handleOrderAction = async (status: "draft" | "pending_approval") => {
-    if (!shopId) return toast.error("Select target entity (Shop)");
-    if (!lines.length) return toast.error("Entry list is empty");
+    if (!shopId) return toast.error("Select shop");
+    if (!lines.length) return toast.error("Order list is empty");
 
     // G3: Prevent editing dispatched/delivered orders directly to protect inventory
     if (originalStatus && ["dispatched", "delivered"].includes(originalStatus)) {
@@ -548,6 +550,56 @@ export default function NewOrder() {
         orderIdToUse = result.order_id!;
       }
 
+      if (editId) {
+        try {
+          const { data: existingInvoice, error: invFetchError } = await supabase
+            .from("invoices")
+            .select("*")
+            .eq("order_id", editId)
+            .maybeSingle();
+
+          if (existingInvoice && !invFetchError) {
+            const isGst = existingInvoice.type === "gst";
+            const newSubtotal = Number(totals.subtotal);
+            const newGstTotal = isGst ? Number(totals.gst) : 0;
+            const newDiscount = Number(totals.calculatedDiscount || 0);
+            const newTotal = isGst ? Number(totals.total) : newSubtotal - newDiscount;
+            const amtPaid = Number(existingInvoice.amount_paid || 0);
+            
+            let newPaymentStatus: Database["public"]["Enums"]["payment_status"] = "unpaid";
+            if (amtPaid >= newTotal) {
+              newPaymentStatus = "paid";
+            } else if (amtPaid > 0) {
+              newPaymentStatus = "partial";
+            }
+
+            const { error: invUpdateError } = await supabase
+              .from("invoices")
+              .update({
+                subtotal: newSubtotal,
+                gst_total: newGstTotal,
+                discount_amount: newDiscount,
+                total: newTotal,
+                payment_status: newPaymentStatus
+              })
+              .eq("id", existingInvoice.id);
+
+            if (invUpdateError) {
+              console.error("[Context] Failed to sync invoice on order edit:", invUpdateError);
+            } else {
+              console.log("[Context] Invoice totals successfully synchronized with modified order.");
+            }
+          }
+        } catch (syncErr) {
+          console.error("[Context] Error syncing invoice on order edit:", syncErr);
+        }
+      }
+
+      // Invalidate queries to prevent stale dashboard/invoice states
+      queryClient.invalidateQueries({ queryKey: ["orders"] });
+      queryClient.invalidateQueries({ queryKey: ["invoices"] });
+      queryClient.invalidateQueries({ queryKey: ["dashboard-stats"] });
+
       toast.success(editId ? "Order updated" : (status === "draft" ? "Saved as draft" : "Order submitted"));
       setLastOrderId(orderIdToUse!);
       setCurrentStep("success");
@@ -577,7 +629,7 @@ export default function NewOrder() {
     switch (currentStep) {
       case "selection":
         return (
-          <div className="space-y-6 py-12 animate-in fade-in slide-in-from-bottom-4 duration-500">
+          <div className="space-y-6 py-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
              <div className="max-w-2xl mx-auto space-y-10">
                 
                 <div className="space-y-6">
@@ -638,60 +690,36 @@ export default function NewOrder() {
         );
       case "catalog":
         return (
-          <div className="space-y-4 animate-in fade-in slide-in-from-right-4 duration-500">
-             {/* Sticky Header for catalog */}
-             <div className={cn(
-               "flex items-center justify-between gap-4 bg-white/60 backdrop-blur-md p-3 sm:p-4 rounded-2xl border border-border/10 sticky z-30 transition-all duration-300",
-               "top-24" // Adjusted for sticky top-0 main header height
-             )}>
-                 <div className="flex items-center gap-2 min-w-0">
-                    <Badge variant="outline" className="h-6 px-2 text-[10px] font-bold bg-slate-50 border-slate-200 shrink-0 text-slate-500">
-                      {warehouses.find(w => w.id === warehouseId)?.name || "Main WH"}
-                    </Badge>
-                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider truncate">
-                       Outstanding: {fmtINR(outstandingBalance)}
-                    </span>
-                    {shop?.credit_limit > 0 && (outstandingBalance + totals.total) > shop.credit_limit && (
-                      <Badge variant="destructive" className="animate-pulse bg-rose-500 text-white border-none h-6 px-3 rounded-full font-black text-[9px] uppercase">
-                        Over Limit (₹{(outstandingBalance + totals.total - shop.credit_limit).toFixed(0)})
-                      </Badge>
-                    )}
-                 </div>
-
-                {lines.length > 0 && (
-                  <Button 
-                    variant="outline"
-                    size="icon"
-                    onClick={() => setCartOpen(true)}
-                    className="h-10 w-10 rounded-xl relative hover:bg-slate-50 transition-colors shrink-0 border-slate-100"
-                  >
-                    <ShoppingBag className="h-4.5 w-4.5 text-slate-600" />
-                    <Badge className="absolute -top-1.5 -right-1.5 h-4.5 w-4.5 rounded-full p-0 flex items-center justify-center font-black text-[9px] bg-brand-primary text-white border-2 border-white shadow-sm">
-                      {lines.filter(l => !l.isRemoved).length}
-                    </Badge>
-                  </Button>
-                )}
-             </div>
-
-             <div className="flex-1 min-h-0 rounded-2xl md:rounded-3xl overflow-hidden border border-border/20 shadow-xl bg-white relative">
-                <ProductCatalog 
-                  warehouseId={warehouseId} 
-                  lines={lines} 
-                  onAdd={(p, b) => addProduct(p, shop, b)} 
-                  onRemove={(id, bid) => removeLine(id, bid)}
-                  onUpdateQty={(id, q, bid) => updateLineQty(id, q, bid)}
-                  onUpdatePackType={(id, pt, bid) => updateLinePackType(id, pt, shop, bid)}
-                  onUpdatePrice={updateLinePrice}
-                  onViewReview={() => setCartOpen(true)}
-                  resolvePrice={(p) => {
-                    return { price: p.mrp || 0, source: 'MRP' }; 
-                  }}
-                  totals={totals}
-                  isEditing={!!editId}
-                  shop={shop}
-                />
-             </div>
-          </div>
+          <ProductCatalog 
+            warehouseId={warehouseId} 
+            lines={lines} 
+            onAdd={(p, b) => addProduct(p, shop, b)} 
+            onRemove={(id, bid) => removeLine(id, bid)}
+            onUpdateQty={(id, q, bid) => updateLineQty(id, q, bid)}
+            onUpdatePackType={(id, pt, bid) => updateLinePackType(id, pt, shop, bid)}
+            onUpdatePrice={updateLinePrice}
+            onViewReview={() => setCartOpen(true)}
+            resolvePrice={(p) => {
+              // Try to resolve the actual price for this shop if possible
+              if (shop?.shop_type) {
+                const tierPrice = priceTiers[shop.shop_type]?.[p.id]?.['unit'] || 
+                                priceTiers[shop.shop_type]?.[p.id]?.['pcs'] ||
+                                priceTiers[shop.shop_type]?.[p.id]?.['packet'];
+                
+                if (tierPrice) return { price: tierPrice, source: 'Tier' };
+              }
+              // Fallback to MRP but without the 'MRP' source label if requested
+              return { price: p.mrp || 0, source: 'Base' }; 
+            }}
+            totals={totals}
+            isEditing={!!editId}
+            shop={shop}
+            orderNumber={orderNumber}
+            status={originalStatus}
+            orderDate={orderDate}
+            onUpdateDate={setOrderDate}
+            className="flex-1 h-full min-h-0"
+          />
         );
       case "checkout":
         return (
@@ -826,102 +854,117 @@ export default function NewOrder() {
   }
 
   return (
-    <div className="min-h-screen bg-slate-50/50">
-      {/* Brand Header / Editing Banner */}
-        <div className="bg-white border-b border-slate-100 p-6 pt-8 sm:pt-10 rounded-b-[2rem] shadow-sm sticky top-0 z-40 overflow-hidden">
-          <div className="relative z-10 flex items-center justify-between max-w-7xl mx-auto">
-            <div className="space-y-1">
-               <h1 className="text-2xl font-black tracking-tight text-[#c2410c]">
-                 {editId ? "Edit Order" : "New Order"}
-               </h1>
-               <p className="text-xs font-medium text-slate-400">
-                {currentStep === "selection" ? "Select outlet to begin" : (shop?.name || "Order summary")}
-              </p>
+    <div className="h-screen bg-slate-50/50 flex flex-col overflow-hidden relative">
+      <div className="shrink-0 z-20">
+        <PageHeader 
+          title={editId ? "Edit Order" : "New Order"}
+          titleColor="#c2410c"
+          action={
+            <div className="flex items-center gap-2">
+              {shop?.credit_limit > 0 && (outstandingBalance + totals.total) > shop.credit_limit && (
+                 <div className="hidden lg:flex items-center gap-3 bg-rose-50 border border-rose-100 px-4 py-1.5 rounded-xl animate-in fade-in slide-in-from-top-1">
+                    <AlertTriangle className="h-3.5 w-3.5 text-rose-500" />
+                    <div className="flex flex-col">
+                      <span className="text-[9px] font-black text-rose-500 uppercase tracking-wider leading-none">Credit Alert</span>
+                      <span className="text-[10px] font-bold text-rose-900 leading-none mt-0.5">
+                        Over by {fmtINR(outstandingBalance + totals.total - shop.credit_limit)}
+                      </span>
+                    </div>
+                 </div>
+              )}
+              
+              {currentStep === "checkout" && (
+                <div className="flex items-center gap-2">
+                  <Button 
+                    variant="outline" 
+                    size="sm"
+                    className="h-9 px-3 rounded-xl border-slate-200 text-slate-600 font-bold text-[10px] uppercase tracking-wider flex items-center gap-2 bg-white shadow-sm hover:bg-slate-50 border-2"
+                    onClick={() => handleOrderAction("draft")}
+                    disabled={busy || lines.filter(l => !l.isRemoved).length === 0}
+                  >
+                    <Save size={14} className="text-slate-400" />
+                    {!isMobile && "Draft"}
+                  </Button>
+                  <Button 
+                    size="sm"
+                    className="h-9 px-3 rounded-xl bg-slate-900 text-white font-bold text-[10px] uppercase tracking-wider flex items-center gap-2 active:scale-95 transition-all shadow-lg"
+                    onClick={() => handleOrderAction("pending_approval")}
+                    disabled={busy || lines.filter(l => !l.isRemoved).length === 0}
+                  >
+                    {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Check size={14} className="stroke-[3]" />}
+                    <span>Submit</span>
+                  </Button>
+                </div>
+              )}
+  
+              <Button 
+                variant="ghost" 
+                size="icon"
+                className="h-10 w-10 rounded-xl text-slate-400 hover:text-slate-900 transition-all active:scale-95"
+                onClick={() => {
+                  if (editId) navigate(`/orders/${editId}`);
+                  else navigate('/orders');
+                }} 
+              >
+                <X size={24} />
+              </Button>
             </div>
-            {shop?.credit_limit > 0 && (outstandingBalance + totals.total) > shop.credit_limit && (
-               <div className="hidden sm:flex items-center gap-3 bg-rose-50 border border-rose-100 px-4 py-2 rounded-2xl animate-in fade-in slide-in-from-top-1">
-                  <AlertTriangle className="h-4 w-4 text-rose-500" />
-                  <div className="flex flex-col">
-                    <span className="text-[10px] font-black text-rose-500 uppercase tracking-wider leading-none">Credit Limit Warning</span>
-                    <span className="text-[11px] font-bold text-rose-900 leading-none mt-1">
-                      Over by {fmtINR(outstandingBalance + totals.total - shop.credit_limit)}
-                    </span>
-                  </div>
-               </div>
-            )}
-            <div className="flex items-center gap-3">
-               {((!editId && currentStep !== "selection") || persistedId) && (
-                 <Button 
-                   variant="ghost"
-                   size="icon"
-                   onClick={handleFullReset}
-                   className="h-10 w-10 rounded-xl text-slate-400 hover:text-slate-600 hover:bg-slate-50 transition-all border border-transparent hover:border-slate-100"
-                 >
-                   <RefreshCw size={18} />
-                 </Button>
-               )}
-               <Button 
-                 variant="outline" 
-                 size="icon" 
-                 onClick={() => {
-                   if (editId) navigate(`/orders/${editId}`);
-                   else navigate('/orders');
-                 }} 
-                 className="h-10 w-10 rounded-xl border-slate-200 text-slate-400 hover:text-slate-600 hover:bg-slate-50 transition-all"
-               >
-                 <X size={20} />
-               </Button>
-            </div>
-          </div>
-        </div>
+          }
+        />
+      </div>
 
-      <ResponsiveContainer className="pb-32 px-1 sm:px-4 mt-6">
-        {/* Unified view handles its own structure when editing */}
-        
-        {/* Recent Shops Header - only in Selection mode */}
-        {shop?.credit_limit > 0 && (outstandingBalance + totals.total) > shop.credit_limit && (
-           <div className="sm:hidden mb-4 flex items-center gap-3 bg-rose-50 border border-rose-200 px-4 py-3 rounded-2xl animate-in zoom-in-95">
-              <AlertTriangle className="h-5 w-5 text-rose-500 shrink-0" />
-              <div className="flex-1">
-                <p className="text-[10px] font-black text-rose-500 uppercase tracking-[0.1em] leading-none mb-1">Account limit exceeded</p>
-                <p className="text-xs font-bold text-rose-900 leading-tight">
-                  Selection carries ₹{fmtINR(outstandingBalance + totals.total - shop.credit_limit)} excess liability.
-                </p>
-              </div>
-           </div>
-        )}
-        {renderStep()}
-      </ResponsiveContainer>
+      <main className={cn(
+        "flex-1 min-h-0 overscroll-contain flex flex-col",
+        currentStep === "catalog" ? "overflow-hidden" : "overflow-y-auto"
+      )}>
+        <ResponsiveContainer 
+          className={cn(
+            "px-1 sm:px-4 transition-all flex flex-col min-h-0 flex-1",
+            currentStep === "catalog" ? "overflow-hidden" : "mt-1 pb-32"
+          )}
+        >
+          {/* Recent Shops Header - only in Selection mode */}
+          {shop?.credit_limit > 0 && (outstandingBalance + totals.total) > shop.credit_limit && currentStep === "selection" && (
+             <div className="mb-4 flex items-center gap-3 bg-rose-50 border border-rose-200 px-4 py-3 rounded-2xl animate-in zoom-in-95">
+                <AlertTriangle className="h-5 w-5 text-rose-500 shrink-0" />
+                <div className="flex-1">
+                  <p className="text-[10px] font-black text-rose-500 uppercase tracking-[0.1em] leading-none mb-1">Account limit exceeded</p>
+                  <p className="text-xs font-bold text-rose-900 leading-tight">
+                    Selection carries ₹{fmtINR(outstandingBalance + totals.total - shop.credit_limit)} excess liability.
+                  </p>
+                </div>
+             </div>
+          )}
+          {renderStep()}
+        </ResponsiveContainer>
+      </main>
 
       {/* Unified Final Bar (Sticky Footer) */}
-      {lines.length > 0 && currentStep === "catalog" && !isMobile && (
-        <div className="fixed bottom-0 left-0 right-0 p-4 z-50 safe-pb">
+      {lines.filter(l => !l.isRemoved).length > 0 && currentStep === "catalog" && (
+        <div className="fixed bottom-6 left-4 right-4 sm:left-6 sm:right-6 z-50 animate-in slide-in-from-bottom-8 duration-500">
            <div 
-             className={cn(
-               "h-20 rounded-[1.5rem] shadow-2xl flex items-center justify-between px-6 border active:scale-95 transition-all cursor-pointer",
-               editId ? "bg-amber-600 border-amber-500 shadow-amber-900/20" : "bg-slate-900 border-white/5 shadow-slate-900/20"
-             )}
-             onClick={() => {
-                if (editId) setCurrentStep("checkout");
-                else setCartOpen(true);
-             }}
+             className="h-16 rounded-3xl shadow-2xl flex items-center justify-between px-5 border transition-all cursor-pointer bg-brand-primary border-white/20 active:scale-[0.98] group overflow-hidden relative"
+             onClick={() => setCartOpen(true)}
            >
-              <div className="flex flex-col">
-                 <div className="flex items-center gap-2">
-                    <span className={cn("text-[10px] font-bold uppercase tracking-widest leading-none", editId ? "text-white/70" : "text-slate-500")}>
-                      {lines.filter(l => !l.isRemoved).length} items
+              <div className="flex items-center gap-4">
+                 <div className="h-10 w-10 rounded-2xl bg-white/20 flex items-center justify-center text-white font-black text-sm relative">
+                    <ShoppingBag size={22} className="group-hover:scale-110 transition-transform" />
+                    <span className="absolute -top-1.5 -right-1.5 h-5 w-5 rounded-full bg-white text-brand-primary text-[10px] font-black flex items-center justify-center shadow-sm">
+                      {lines.filter(l => !l.isRemoved).length}
                     </span>
-                    {editId && <span className="h-1.5 w-1.5 rounded-full bg-white animate-pulse" />}
                  </div>
-                 <span className="text-xl font-bold text-white tabular-nums">{fmtINR(totals.total)}</span>
+                 <div className="flex flex-col">
+                    <span className="text-[9px] font-black text-white/70 uppercase tracking-[0.2em] leading-none mb-1">View Cart</span>
+                    <span className="text-lg font-black text-white tabular-nums tracking-tight">{fmtINR(totals.total)}</span>
+                 </div>
               </div>
               
-              <Button className={cn(
-                "h-10 px-6 rounded-xl font-black text-[10px] uppercase tracking-[0.1em] border-none",
-                editId ? "bg-white text-amber-600 hover:bg-white/90" : "bg-white/10 text-white hover:bg-white/20"
-                )}>
-                 {editId ? "Review Order →" : "Review cart"}
-              </Button>
+              <div className="flex items-center gap-2">
+                 <span className="text-[10px] font-black text-white uppercase tracking-widest hidden sm:inline">Review Order</span>
+                 <div className="h-8 w-8 rounded-xl bg-white/10 flex items-center justify-center text-white group-hover:translate-x-1 transition-transform">
+                   <ArrowLeft className="h-4 w-4 rotate-180" />
+                 </div>
+              </div>
            </div>
         </div>
       )}
@@ -937,8 +980,8 @@ export default function NewOrder() {
           <SheetHeader className="p-4 sm:p-5 bg-white border-b border-border/40 shrink-0">
              <div className="flex items-center justify-between">
                 <div className="flex flex-col">
-                   <SheetTitle className="text-lg sm:text-xl font-black text-slate-900 tracking-tighter leading-none mb-1 sm:mb-1.5 uppercase">Basket</SheetTitle>
-                   <p className="text-[8px] sm:text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em]">{lines.length} Items Indexed</p>
+                   <SheetTitle className="text-lg sm:text-xl font-black text-slate-900 tracking-tighter leading-none mb-1 sm:mb-1.5 uppercase">Cart</SheetTitle>
+                   <p className="text-[8px] sm:text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em]">{lines.length} Items</p>
                 </div>
                 <div className="flex items-center gap-2">
                   <Badge className="bg-brand-primary/10 text-brand-primary border-none rounded-full px-3 h-6 flex items-center justify-center font-black text-[10px]">

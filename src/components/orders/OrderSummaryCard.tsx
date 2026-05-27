@@ -6,7 +6,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { fmtINR } from "@/lib/format";
 import { Shop, Line } from "@/types";
-import { Loader2, Save, Send } from "lucide-react";
+import { Loader2, Save, Send, Check } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface OrderSummaryCardProps {
@@ -121,12 +121,12 @@ export function OrderSummaryCard({
             Save Draft
           </Button>
           <Button 
-            className="h-14 rounded-2xl font-bold bg-slate-900 text-white gap-2 hover:bg-slate-800 transition-all active:scale-95"
+            className="h-14 rounded-2xl font-bold bg-slate-900 text-white gap-2 hover:bg-slate-800 transition-all active:scale-95 px-4"
             onClick={() => onAction("pending_approval")}
             disabled={busy || activeLines.length === 0}
           >
-            {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
-            Submit Order
+            {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Check size={18} className="stroke-[3]" />}
+            <span className="truncate">Submit for Approval</span>
           </Button>
         </div>
       </CardContent>

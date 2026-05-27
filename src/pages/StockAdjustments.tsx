@@ -17,6 +17,8 @@ import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import { useIsMobile } from "@/lib/responsive";
 import { PageHeader } from "@/components/PageHeader";
+import { StockTabs } from "@/components/stock/StockTabs";
+import { ResponsiveContainer } from "@/components/ui/responsive-ui";
 import { StockBreakdownDisplay } from "@/components/StockBreakdownDisplay";
 
 import { Product } from "@/types";
@@ -204,38 +206,38 @@ export default function StockAdjustments() {
   );
 
   return (
-    <div className="w-full space-y-5 pb-10 animate-fade-in">
+    <div className="pb-32 md:pb-24">
       <PageHeader 
         title="Stock Adjustments"
-        subtitle="Record Write-offs & Variances"
+        subtitle="Fix stock levels or record damages"
         onBack={() => navigate("/stock")}
         action={
-          <div className="flex gap-3">
-            <Button variant="outline" className="font-black uppercase tracking-widest text-xs h-11 px-6 rounded-2xl border-2 border-primary/10 text-primary hover:bg-primary/5" onClick={() => navigate("/stock/movement?filter=adjustment")}>
+          <div className="flex gap-2">
+            <Button variant="outline" className="font-bold uppercase tracking-wider text-xs h-11 px-6 rounded-xl border border-border bg-card text-muted-foreground hover:text-foreground" onClick={() => navigate("/stock/movement?filter=adjustment")}>
               <HistoryIcon className="h-4 w-4 mr-2" /> View History
             </Button>
             
             <Sheet open={open} onOpenChange={setOpen}>
               <SheetTrigger asChild>
-                <Button className="font-black uppercase tracking-widest text-xs h-11 px-6 rounded-2xl shadow-lg shadow-primary/20" onClick={resetForm}>
+                <Button className="font-bold uppercase tracking-wider text-xs h-11 px-6 rounded-xl shadow-sm" onClick={resetForm}>
                   <Plus className="h-4 w-4 mr-2" /> New Adjustment
                 </Button>
               </SheetTrigger>
-              <SheetContent side={isMobile ? "bottom" : "right"} className={cn("rounded-t-[2.5rem] p-0 overflow-hidden border-t-0 shadow-2xl", isMobile ? "h-[92dvh]" : "w-[560px] h-full rounded-none")}>
+              <SheetContent side={isMobile ? "bottom" : "right"} className={cn("rounded-t-2xl p-0 overflow-hidden border-t-0 shadow-2xl", isMobile ? "h-[92dvh]" : "w-[560px] h-full rounded-none")}>
                 <div className="h-full flex flex-col bg-background">
                   <div className="p-6 pb-0">
                     {isMobile && <div className="w-12 h-1.5 bg-muted rounded-full mx-auto mb-6" />}
                     <SheetHeader className="mb-6">
-                      <SheetTitle className="text-2xl font-black text-center">Record Stock Adjustment</SheetTitle>
-                      <p className="text-xs font-black uppercase tracking-widest text-muted-foreground opacity-60 text-center">Protocol: Inventory Correction</p>
+                      <SheetTitle className="text-2xl font-bold text-center">Update Stock Level</SheetTitle>
+                      <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground opacity-60 text-center">Adjust items manually</p>
                     </SheetHeader>
                   </div>
 
                   <div className="flex-1 overflow-y-auto mt-2 px-6 pb-24 space-y-6">
                     <div className="space-y-1.5">
-                      <Label className="text-[10px] font-black uppercase text-muted-foreground ml-1">Identity Product</Label>
-                      <select value={selectedProductId} onChange={(e) => setSelectedProductId(e.target.value)} className="h-14 w-full rounded-2xl border-2 bg-muted/20 px-4 font-bold focus:ring-primary/20 outline-none">
-                        <option value="">Choose product catalog item...</option>
+                      <Label className="text-[10px] font-bold uppercase text-muted-foreground ml-1">Select Product</Label>
+                      <select value={selectedProductId} onChange={(e) => setSelectedProductId(e.target.value)} className="h-12 w-full rounded-xl border border-border bg-card px-4 font-bold focus:ring-primary/20 outline-none">
+                        <option value="">Select an item...</option>
                         {products.map(p => (
                           <option key={p.id} value={p.id}>{p.name} ({p.sku})</option>
                         ))}
@@ -244,11 +246,11 @@ export default function StockAdjustments() {
 
                     {selectedProductId && (
                       <div className="space-y-1.5 animate-in fade-in slide-in-from-top-2">
-                        <Label className="text-[10px] font-black uppercase text-muted-foreground ml-1">Specified Batch</Label>
-                        <select value={selectedBatchId} onChange={(e) => setSelectedBatchId(e.target.value)} className="h-14 w-full rounded-2xl border-2 bg-muted/20 px-4 font-bold focus:ring-primary/20 outline-none">
-                          <option value="">Choose active batch...</option>
+                        <Label className="text-[10px] font-bold uppercase text-muted-foreground ml-1">Select Batch</Label>
+                        <select value={selectedBatchId} onChange={(e) => setSelectedBatchId(e.target.value)} className="h-12 w-full rounded-xl border border-border bg-card px-4 font-bold focus:ring-primary/20 outline-none">
+                          <option value="">Select active batch...</option>
                           {batches.map(b => (
-                            <option key={b.id} value={b.id}>{b.batch_number} (Remaining: {b.remaining_qty})</option>
+                            <option key={b.id} value={b.id}>{b.batch_number} (Available: {b.remaining_qty})</option>
                           ))}
                         </select>
                       </div>
@@ -256,18 +258,18 @@ export default function StockAdjustments() {
 
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div className="space-y-1.5 relative">
-                        <Label className="text-[10px] font-black uppercase text-muted-foreground ml-1">Correction Qty</Label>
+                        <Label className="text-[10px] font-bold uppercase text-muted-foreground ml-1">Quantity to change</Label>
                         <div className="flex gap-2">
                           <Input 
                             type="number" 
                             inputMode="decimal"
-                            className="h-14 rounded-2xl border-2 bg-muted/20 font-black text-lg focus:ring-primary/20 tabular-nums flex-1" 
+                            className="h-12 rounded-xl border border-border bg-card font-bold text-lg focus:ring-primary/20 tabular-nums flex-1" 
                             value={adjustmentQty} 
                             onChange={e => setAdjustmentQty(e.target.value)}
                             placeholder="0"
                           />
                           <Select value={adjustmentUnit} onValueChange={setAdjustmentUnit}>
-                            <SelectTrigger className="h-14 w-32 rounded-2xl border-2 bg-muted/20 font-bold focus:ring-primary/20 capitalize">
+                            <SelectTrigger className="h-12 w-32 rounded-xl border border-border bg-card font-bold focus:ring-primary/20 capitalize">
                               <SelectValue />
                             </SelectTrigger>
                             <SelectContent className="rounded-xl">
@@ -281,14 +283,14 @@ export default function StockAdjustments() {
                         </div>
                         
                         {reason === 'variance' && (
-                          <div className="mt-4 p-4 rounded-2xl bg-muted/20 border-2 border-border/50 flex items-center justify-between">
-                            <span className="text-xs font-black uppercase tracking-widest text-muted-foreground opacity-60">Adjustment Direction</span>
+                          <div className="mt-4 p-4 rounded-xl bg-muted/20 border border-border flex items-center justify-between">
+                            <span className="text-xs font-bold uppercase tracking-wider text-muted-foreground opacity-60">Adjustment</span>
                             <div className="flex items-center gap-1 bg-background p-1 rounded-xl border">
                               <Button 
                                 variant={varianceDirection === 'add' ? 'default' : 'ghost'} 
                                 size="sm" 
                                 onClick={() => setVarianceDirection('add')}
-                                className="h-8 rounded-lg text-[10px] font-black uppercase"
+                                className="h-8 rounded-lg text-[10px] font-bold uppercase"
                               >
                                 Add Stock (+)
                               </Button>
@@ -296,7 +298,7 @@ export default function StockAdjustments() {
                                 variant={varianceDirection === 'remove' ? 'destructive' : 'ghost'} 
                                 size="sm" 
                                 onClick={() => setVarianceDirection('remove')}
-                                className={cn("h-8 rounded-lg text-[10px] font-black uppercase", varianceDirection === 'remove' && "bg-destructive text-white")}
+                                className={cn("h-8 rounded-lg text-[10px] font-bold uppercase", varianceDirection === 'remove' && "bg-destructive text-white")}
                               >
                                 Remove Stock (-)
                               </Button>
@@ -306,18 +308,18 @@ export default function StockAdjustments() {
 
                         {selectedProduct && adjustmentQty && (
                           <div className="mt-2 p-2 rounded-xl bg-primary/5 border border-primary/10 animate-in fade-in zoom-in-95">
-                            <p className="text-[10px] font-black uppercase text-primary/60 tracking-widest mb-1">Impact Preview</p>
+                            <p className="text-[10px] font-bold uppercase text-primary/60 tracking-wider mb-1">Preview</p>
                             <p className="text-xs font-bold">
-                              This will adjust stock by <span className={cn("font-black", (['damage', 'wastage', 'sample', 'return_to_supplier', 'internal_consumption', 'expiry'].includes(reason) || (reason === 'variance' && varianceDirection === 'remove')) ? "text-destructive" : "text-emerald-600")}>
+                              Adjusting <span className={cn("font-bold", (['damage', 'wastage', 'sample', 'return_to_supplier', 'internal_consumption', 'expiry'].includes(reason) || (reason === 'variance' && varianceDirection === 'remove')) ? "text-destructive" : "text-emerald-600")}>
                                 {(['damage', 'wastage', 'sample', 'return_to_supplier', 'internal_consumption', 'expiry'].includes(reason) || (reason === 'variance' && varianceDirection === 'remove')) ? '-' : '+'}
                                 {convertToBaseUnits(Number(adjustmentQty), adjustmentUnit, selectedProduct)}
-                              </span> base units.
+                              </span> base pieces.
                             </p>
                           </div>
                         )}
                         <div className="absolute right-36 top-[3.25rem] pointer-events-none">
                           <Badge variant="outline" className={cn(
-                            "text-[9px] font-black uppercase tracking-tighter h-5",
+                            "text-[9px] font-bold uppercase tracking-tighter h-5",
                             (['damage', 'wastage', 'sample', 'return_to_supplier', 'internal_consumption', 'expiry'].includes(reason) || (reason === 'variance' && varianceDirection === 'remove')) ? "bg-destructive/10 text-destructive border-destructive/20" : 
                             adjustmentQty && Number(adjustmentQty) !== 0 ? "bg-emerald-50 text-emerald-600 border-emerald-100" : "bg-muted"
                           )}>
@@ -327,17 +329,17 @@ export default function StockAdjustments() {
                       </div>
 
                       <div className="space-y-1.5 text-right px-1">
-                        <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest mt-6 italic leading-tight">
-                          {reason === 'variance' ? "Select direction using the toggle above." : "Quantities will be deducted automatically for chosen reason."}
+                        <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider mt-6 italic leading-tight">
+                          {reason === 'variance' ? "Select direction using the toggle above." : "Quantities will be removed automatically for the selected reason."}
                         </p>
                       </div>
                     </div>
 
                     <div className="space-y-1.5">
-                      <Label className="text-[10px] font-black uppercase text-muted-foreground ml-1">Classification Reason</Label>
+                      <Label className="text-[10px] font-bold uppercase text-muted-foreground ml-1">Reason for change</Label>
                       <div className="flex flex-wrap gap-2 pb-2 -mx-1 px-1">
                         {[
-                          { id: 'variance', label: 'Variance'},
+                          { id: 'variance', label: 'Difference'},
                           { id: 'damage', label: 'Damage'},
                           { id: 'expiry', label: 'Expiry'},
                           { id: 'wastage', label: 'Wastage'},
@@ -351,10 +353,10 @@ export default function StockAdjustments() {
                             key={r.id}
                             onClick={() => setReason(r.id as AdjustmentReason)}
                             className={cn(
-                              "h-11 rounded-xl border-2 font-bold text-[11px] uppercase tracking-tight transition-all text-center px-4",
+                              "h-10 rounded-xl border font-bold text-[11px] uppercase tracking-tight transition-all text-center px-4",
                               reason === r.id 
-                                ? "bg-primary text-white border-primary shadow-lg shadow-primary/20 scale-[1.02]" 
-                                : "bg-card border-border/50 text-muted-foreground hover:border-primary/20"
+                                ? "bg-primary text-white border-primary shadow-sm scale-[1.02]" 
+                                : "bg-card border-border text-muted-foreground hover:border-primary/20"
                             )}
                           >
                             {r.label}
@@ -364,21 +366,21 @@ export default function StockAdjustments() {
                     </div>
 
                     <div className="space-y-1.5">
-                      <Label className="text-[10px] font-black uppercase text-muted-foreground ml-1">Justification / Notes</Label>
+                      <Label className="text-[10px] font-bold uppercase text-muted-foreground ml-1">Notes</Label>
                       <Input 
-                        className="h-14 rounded-2xl border-2 bg-muted/20 font-medium focus:ring-primary/20" 
+                        className="h-12 rounded-xl border border-border bg-card font-medium focus:ring-primary/20" 
                         value={notes} 
                         onChange={e => setNotes(e.target.value)} 
-                        placeholder="Log detailed explanation for audit trail..." 
+                        placeholder="Add a reason for this change..." 
                       />
                     </div>
                   </div>
 
-                  <div className="p-6 pt-4 bg-background border-t border-border/50 flex gap-3 shrink-0 relative z-20">
-                    <Button variant="outline" className="h-14 rounded-2xl flex-1 font-black uppercase tracking-widest text-xs border-2" onClick={() => setOpen(false)}>Cancel</Button>
-                    <Button className="h-14 rounded-2xl flex-[2] font-black uppercase tracking-widest text-xs shadow-xl shadow-primary/20" onClick={handleSubmit} disabled={submitting}>
+                  <div className="p-6 pt-4 bg-background border-t border-border flex gap-3 shrink-0 relative z-20">
+                    <Button variant="outline" className="h-12 rounded-xl flex-1 font-bold uppercase tracking-wider text-xs border" onClick={() => setOpen(false)}>Cancel</Button>
+                    <Button className="h-12 rounded-xl flex-[2] font-bold uppercase tracking-wider text-xs shadow-sm" onClick={handleSubmit} disabled={submitting}>
                       {submitting ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Save className="h-4 w-4 mr-2" />}
-                      Finalize Adjustment
+                      Save Changes
                     </Button>
                   </div>
                 </div>
@@ -388,40 +390,44 @@ export default function StockAdjustments() {
         }
       />
 
-      <div className="max-w-2xl mx-auto space-y-6">
-        <Card className="rounded-[2.5rem] border-2 shadow-xl shadow-primary/5 p-8 bg-card relative overflow-hidden">
-          <div className="absolute top-0 right-0 p-12 opacity-5 pointer-events-none">
-            <HistoryIcon className="h-48 w-48 text-primary" />
-          </div>
-          <div className="relative z-10 space-y-4">
-            <div className="h-14 w-14 rounded-2xl bg-primary/10 flex items-center justify-center text-primary">
-              <HistoryIcon className="h-8 w-8" />
-            </div>
-            <div>
-              <h3 className="text-xl font-black text-foreground">Adjustment Audit Trail</h3>
-              <p className="text-sm text-muted-foreground mt-2 font-medium leading-relaxed">
-                All stock adjustments are logged as immutable entries in the global movement ledger. 
-                Use the ledger to track variances, write-offs, and batch corrections across the entire catalog.
-              </p>
-            </div>
-            <Button 
-              variant="default" 
-              className="h-12 px-6 rounded-xl font-black uppercase tracking-widest text-[10px] shadow-lg shadow-primary/20"
-              onClick={() => navigate("/stock/movement?filter=adjustment")}
-            >
-              Open Audit Ledger <ArrowRight className="h-4 w-4 ml-2" />
-            </Button>
-          </div>
-        </Card>
+      <ResponsiveContainer className="space-y-4 md:space-y-6 mt-1 md:mt-4">
+        <StockTabs />
 
-        <div className="p-6 bg-amber-50/50 rounded-2xl border-2 border-amber-200/50">
-          <p className="text-[10px] font-black uppercase tracking-widest text-amber-700 opacity-70 mb-1">Operational Protocol</p>
-          <p className="text-xs font-bold text-amber-900/80 italic leading-tight">
-            Adjusting stock creates an immediate inventory record that cannot be deleted. 
-            Ensure all quantities are verified against physical counts before finalizing.
-          </p>
+        <div className="max-w-xl mx-auto space-y-4">
+          <Card className="rounded-2xl border border-border/60 shadow-sm p-6 bg-card relative overflow-hidden">
+            <div className="absolute top-0 right-0 p-12 opacity-5 pointer-events-none">
+              <HistoryIcon className="h-48 w-48 text-primary" />
+            </div>
+            <div className="relative z-10 space-y-4">
+              <div className="h-10 w-10 rounded-xl bg-primary/10 flex items-center justify-center text-primary">
+                <HistoryIcon className="h-5 w-5" />
+              </div>
+              <div>
+                <h3 className="text-lg font-bold text-foreground">Change History</h3>
+                <p className="text-xs text-muted-foreground mt-2 font-medium leading-relaxed">
+                  All stock changes are recorded and saved. 
+                  You can track every adjustment, damage report, and stock correction here.
+                </p>
+              </div>
+              <Button 
+                variant="default" 
+                className="h-10 px-6 rounded-xl font-bold uppercase tracking-wider text-[10px] shadow-sm"
+                onClick={() => navigate("/stock/movement?filter=adjustment")}
+              >
+                View Full History <ArrowRight className="h-4 w-4 ml-2" />
+              </Button>
+            </div>
+          </Card>
+
+          <div className="p-4 bg-amber-50 rounded-xl border border-amber-200">
+            <p className="text-[10px] font-bold uppercase tracking-wider text-amber-700 opacity-70 mb-1">Notice</p>
+            <p className="text-xs font-bold text-amber-900/80 italic leading-tight">
+              Adjusting stock updates your inventory immediately. 
+              Please check the physical count before saving.
+            </p>
+          </div>
         </div>
-      </div>
+      </ResponsiveContainer>
     </div>
   );
 }

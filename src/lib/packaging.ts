@@ -141,7 +141,12 @@ export function getAvailableSellUnits(p: Partial<Product>): string[] {
       const units = ['pcs'];
       if (hasPacket) units.push('packet');
       if (hasCase)   units.push('case');
-      units.push(isLiquid ? 'ltr' : 'kg');
+      if (isLiquid) {
+        units.push('ltr');
+        units.push('ml');
+      } else {
+        units.push('kg');
+      }
       return units;
     }
 
@@ -176,11 +181,14 @@ export function convertToBaseUnits(
       (['kg', 'ltr', 'l'].includes(psu) ? (p.pack_size_value || 0) * 1000 : 0)) || 0;
 
     if (wpug && wpug > 0) {
-      if (unit === 'pcs' || unit === 'unit' || unit === 'pouch' || unit === 'packet') return qty;
+      if (unit === 'pcs' || unit === 'unit' || unit === 'pouch') return qty;
+      if (unit === 'packet' || unit === 'pkt') return qty * upp;
       if (unit === 'case') return qty * upc;
       if (unit === 'g' || unit === 'gms' || unit === 'ml') return qty / wpug;
       if (unit === 'kg' || unit === 'ltr' || unit === 'l') return (qty * 1000) / wpug;
     } else {
+      if (unit === 'packet' || unit === 'pkt') return qty * upp;
+      if (unit === 'case') return qty * upc;
       if (unit === 'g' || unit === 'gms' || unit === 'ml') return qty;
       if (unit === 'kg' || unit === 'ltr' || unit === 'l') return qty * 1000;
     }
@@ -388,13 +396,12 @@ export function getUnitLabel(u: string, p: Partial<Product> | null): string {
     if (itemPackType === 'jar')   return 'Jar';
     if (itemPackType === 'bottle' || itemPackType === 'btl') return 'Btl';
     if (itemPackType === 'can')    return 'Can';
-    return 'Unit/Pcs';
+    return 'Unit';
   }
   
   if (lower === 'packet' || lower === 'pkt') return 'Packet';
   if (lower === 'case' || lower === 'ctn' || lower === 'carton') return 'Case';
   if (lower === 'kg') return 'Kg';
-  if (lower === 'g' || lower === 'gms' || lower === 'gm') return 'Unit/Pcs';
   if (lower === 'ml') return 'Ml';
   if (lower === 'ltr' || lower === 'l') return 'Ltr';
   

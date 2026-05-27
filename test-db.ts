@@ -12,13 +12,12 @@ if (!supabaseUrl || !supabaseKey) {
 
 const supabase = createClient(supabaseUrl, supabaseKey);
 
-async function checkTable() {
-  const { data: routeData, error: routeError } = await supabase.from('beat_routes').select('*').limit(1);
-  if (routeError) {
-    console.log("Error checking beat_routes:", routeError.message);
-  } else {
-    console.log("beat_routes exists. First row:", routeData);
-  }
+async function testRevert() {
+  const orderId = '7e4403d7-a8de-41e0-9067-169eb40f16f6';
+  console.log("Calling revert_order_to_approved for order:", orderId);
+  const { data, error } = await supabase.rpc('revert_order_to_approved', { p_order_id: orderId });
+  console.log("Error:", error);
+  console.log("Data result:", data);
 }
 
-checkTable();
+testRevert();

@@ -24,6 +24,7 @@ export type Line = {
   avg_landed_cost?: number;
   units_per_packet?: number;
   packets_per_case?: number;
+  units_per_case?: number;
   unit_type?: "pcs" | "packet" | "kg_g" | null;
   weight_per_unit_grams?: number | null;
   display_weight_unit?: string | null;

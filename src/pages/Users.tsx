@@ -220,6 +220,7 @@ export default function Users() {
       <PageHeader 
         title="Staff" 
         subtitle="Manage staff roles and access PINs" 
+        titleColor="var(--color-brand-primary)"
         onBack={() => navigate("/")}
         action={
           <Button 
@@ -267,9 +268,9 @@ export default function Users() {
                         <h3 className="truncate font-black tracking-tight text-slate-900 text-sm sm:text-lg">{u.full_name || "Anonymous"}</h3>
                         {isMe && <Badge className="bg-primary/10 text-primary border-none font-black text-[7px] sm:text-[9px] uppercase tracking-widest px-1 sm:px-2 py-0 h-4 sm:h-5 whitespace-nowrap">Self</Badge>}
                       </div>
-                      <div className="flex flex-col text-[7px] sm:text-[10px] font-bold text-slate-400 uppercase tracking-wider truncate mt-0.5 sm:mt-1">
-                        {u.email && <span className="truncate">{u.email}</span>}
-                        {u.phone && <span className="truncate">{u.phone}</span>}
+                      <div className="flex flex-col text-[7px] sm:text-[10px] font-bold text-slate-400 uppercase tracking-wider mt-0.5 sm:mt-1">
+                        {u.email && <span>{u.email}</span>}
+                        {u.phone && <span>{u.phone}</span>}
                       </div>
                     </div>
                 </div>

@@ -50,7 +50,7 @@ export const ProductTableRow = ({ product: p, onClick }: ProductTableRowProps) =
           )}
         </div>
         
-        <h4 className="font-bold text-slate-900 text-sm leading-tight mb-1 line-clamp-1 group-hover:text-primary transition-colors">
+        <h4 className="font-bold text-slate-900 text-sm leading-tight mb-1 group-hover:text-primary transition-colors">
           {p.name}
         </h4>
         

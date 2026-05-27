@@ -301,7 +301,7 @@ export default function ProductDetail() {
           </Button>
           <div className="h-px w-6 bg-slate-200 hidden xs:block" />
           <div className="flex flex-col leading-tight">
-            <h1 className="text-sm font-bold text-slate-900 truncate max-w-[200px] sm:max-w-[400px]">
+            <h1 className="text-sm font-bold text-slate-900">
               {edit.name || (id === "new" ? "New Product" : "Untitled")}
             </h1>
             <div className="flex items-center gap-2 mt-0.5">

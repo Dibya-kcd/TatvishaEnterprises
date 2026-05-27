@@ -247,19 +247,14 @@ export default function Orders() {
   ];
 
   return (
-    <div className="space-y-8 pb-32">
-      <div className="pt-4">
-        <PageHeader
-          title="Orders"
-          subtitle={`${totalCount} orders`}
-          onBack={() => navigate("/")}
-          actionLabel="New order"
-          actionIcon={<Plus size={16} />}
-          onAction={() => navigate("/orders/new")}
-        />
-      </div>
+    <div className="pb-32">
+      <PageHeader
+        title="Orders"
+        titleColor="var(--color-brand-primary)"
+        onBack={() => navigate("/")}
+      />
 
-      <div className="bg-white/50 backdrop-blur-sm rounded-3xl p-3 shadow-sm ring-1 ring-slate-200/50">
+      <div className="glass-panel rounded-3xl p-3 shadow-md border border-white/30 transition-all duration-500 mt-2">
         <SearchFilterBar
           categories={categories}
           filters={orderFilters}
@@ -321,14 +316,14 @@ export default function Orders() {
       <ResponsiveDialog
         open={actionState.isOpen}
         onOpenChange={(open) => setActionState(prev => ({ ...prev, isOpen: open }))}
-        title={`Set ${statusLabel[actionState.action || 'approved']} Details`}
-        description={actionState.action === 'dispatched' ? "Provide dispatch details and timestamp. Stock will be deducted." : "Provide the date and time for this status update."}
+        title={`Update Status`}
+        description={actionState.action === 'dispatched' ? "Enter dispatch information. This will update your stock." : "Select the date and time for this status update."}
       >
         <div className="space-y-6 pt-4">
           {actionState.action === 'dispatched' && (
             <>
               <div className="space-y-2">
-                <Label htmlFor="vehicle" className="text-xs font-black uppercase tracking-widest text-slate-400">Vehicle Number *</Label>
+                <Label htmlFor="vehicle" className="text-xs font-bold uppercase tracking-wider text-slate-400">Vehicle Number *</Label>
                 <Input
                   id="vehicle"
                   placeholder="e.g. MH 12 AB 1234"
@@ -338,7 +333,7 @@ export default function Orders() {
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="driver" className="text-xs font-black uppercase tracking-widest text-slate-400">Driver Name *</Label>
+                <Label htmlFor="driver" className="text-xs font-bold uppercase tracking-wider text-slate-400">Driver Name *</Label>
                 <Input
                   id="driver"
                   placeholder="Full Name"
@@ -350,7 +345,7 @@ export default function Orders() {
             </>
           )}
           <div className="space-y-2">
-            <Label htmlFor="timestamp" className="text-xs font-black uppercase tracking-widest text-slate-400">Timestamp</Label>
+            <Label htmlFor="timestamp" className="text-xs font-bold uppercase tracking-wider text-slate-400">Date and Time</Label>
             <Input
               id="timestamp"
               type="datetime-local"

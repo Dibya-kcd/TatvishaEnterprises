@@ -17,10 +17,10 @@ import {
   Box,
   Edit2,
   Camera,
+  X
 } from "lucide-react";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Drawer, DrawerContent, DrawerDescription, DrawerHeader, DrawerTitle, DrawerFooter, DrawerClose } from "@/components/ui/sheet";
 import { Badge } from "@/components/ui/badge";
 import { useNavigate } from "react-router-dom";
 import { fmtINR } from "@/lib/format";
@@ -329,11 +329,20 @@ function AddItemDrawer({ open, onOpenChange, products, editingItem, onAdd, onUpd
                 <div className="relative">
                   <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-400" />
                   <Input 
-                    className="pl-10 h-11 rounded-xl border-zinc-100 bg-zinc-50/50"
+                    className="pl-10 pr-10 h-11 rounded-xl border-zinc-100 bg-zinc-50/50"
                     placeholder="Search product..."
                     value={search}
                     onChange={e => setSearch(e.target.value)}
                   />
+                  {search && (
+                    <button 
+                      onClick={() => setSearch("")}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 h-6 w-6 flex items-center justify-center text-zinc-300 hover:text-zinc-600 transition-colors"
+                      title="Clear search"
+                    >
+                      <X className="h-4 w-4" />
+                    </button>
+                  )}
                 </div>
                 <div className="space-y-2 max-h-[300px] overflow-y-auto pr-1">
                   {filteredProducts.map(p => (
@@ -343,7 +352,7 @@ function AddItemDrawer({ open, onOpenChange, products, editingItem, onAdd, onUpd
                       onClick={() => onAdd(p)}
                     >
                       <div className="min-w-0 pr-2">
-                        <p className="text-[12px] font-bold text-zinc-900 truncate uppercase leading-none">{p.name}</p>
+                        <p className="text-[12px] font-bold text-zinc-900 uppercase leading-normal mb-1">{p.name}</p>
                         <p className="text-[9px] font-mono text-zinc-400 mt-1 uppercase tracking-tighter">{p.sku}</p>
                       </div>
                       <Plus className="h-4 w-4 text-zinc-300" />
@@ -354,7 +363,7 @@ function AddItemDrawer({ open, onOpenChange, products, editingItem, onAdd, onUpd
             ) : (
               <div className="space-y-6">
                  <div className="bg-zinc-50 p-4 rounded-xl border border-black/5">
-                    <p className="text-[12px] font-bold text-zinc-900 truncate uppercase leading-none mb-1">{editingItem.name}</p>
+                    <p className="text-[12px] font-bold text-zinc-900 uppercase leading-normal mb-1">{editingItem.name}</p>
                     <p className="text-[9px] font-mono text-zinc-400 uppercase tracking-tighter">{editingItem.sku}</p>
                  </div>
                  <div className="grid grid-cols-2 gap-4">
@@ -615,8 +624,8 @@ function BulkImportWizard({
                   <div key={m.id} className="p-3 bg-white rounded-xl border border-black/5 shadow-sm">
                     <div className="flex justify-between items-start mb-2">
                        <div className="min-w-0 flex-1">
-                          <p className="text-[12px] font-bold text-zinc-900 uppercase truncate leading-none">{m.matchedProduct?.name || "Unmapped item"}</p>
-                          <p className="text-[10px] font-mono text-zinc-400 mt-1 uppercase tracking-tighter truncate">{m.sku_or_name}</p>
+                          <p className="text-[12px] font-bold text-zinc-900 uppercase leading-normal mb-1">{m.matchedProduct?.name || "Unmapped item"}</p>
+                          <p className="text-[10px] font-mono text-zinc-400 mt-1 uppercase tracking-tighter">{m.sku_or_name}</p>
                        </div>
                     </div>
                     <Select value={m.matchedProduct?.id || "none"} onValueChange={(v) => {
@@ -650,7 +659,7 @@ function BulkImportWizard({
               <div className="flex-1 overflow-y-auto p-4 space-y-3 pb-24">
                 {mappings.filter(m => m.match_status === "MATCHED").map((m) => (
                    <div key={m.id} className="p-3 bg-white border border-black/5 rounded-xl">
-                      <p className="text-[13px] font-bold text-zinc-900 leading-none uppercase truncate mb-1">{m.matchedProduct?.name}</p>
+                      <p className="text-[13px] font-bold text-zinc-900 leading-normal uppercase mb-2">{m.matchedProduct?.name}</p>
                       <p className="text-[10px] text-zinc-400 font-bold">{m.quantity} {m.pack_type} @ {fmtINR(m.cost_per_pack)}</p>
                    </div>
                 ))}

@@ -6,10 +6,13 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Plus, ClipboardList, Warehouse as WarehouseIcon, ChevronRight, Calendar, User, ChevronLeft } from "lucide-react";
+import { Plus, ClipboardList, Warehouse as WarehouseIcon, ChevronRight, Calendar, User, ChevronLeft, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { friendlyError } from "@/lib/errors";
 import { format } from "date-fns";
+import { StockTabs } from "@/components/stock/StockTabs";
+import { PageHeader } from "@/components/PageHeader";
+import { ResponsiveContainer } from "@/components/ui/responsive-ui";
 import {
   Dialog,
   DialogContent,
@@ -39,6 +42,24 @@ export default function StockAudit() {
   const [loading, setLoading] = useState(true);
   const [selectedWarehouse, setSelectedWarehouse] = useState("");
   const [open, setOpen] = useState(false);
+  const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
+
+  const deleteAudit = async (id: string) => {
+    try {
+      const { error } = await supabase
+        .from("stock_audits")
+        .delete()
+        .eq("id", id);
+
+      if (error) throw error;
+
+      toast.success("Count session deleted successfully");
+      fetchData();
+    } catch (err: unknown) {
+      console.error('[Context] Delete audit session failed', err);
+      toast.error(friendlyError(err));
+    }
+  };
 
   const fetchData = useCallback(async () => {
     setLoading(true);
@@ -139,125 +160,166 @@ export default function StockAudit() {
   if (!isAdmin) return <div className="p-8 text-center text-muted-foreground italic">Admin access restricted</div>;
 
   return (
-    <div className="mx-auto space-y-5">
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <div className="space-y-1">
-          <div className="flex items-center gap-2">
-            <Button 
-              variant="ghost" 
-              size="icon" 
-              className="rounded-xl h-10 w-10 hover:bg-muted/10 transition-all -ml-2" 
-              onClick={() => navigate("/stock")}
-            >
-              <ChevronLeft className="h-5 w-5" />
-            </Button>
-            <div className="p-2 bg-amber-100 rounded-lg">
-              <ClipboardList className="h-5 w-5 text-amber-600" />
-            </div>
-            <h1 className="text-2xl font-black tracking-tight uppercase">Physical Inventory Audit</h1>
-          </div>
-          <p className="text-muted-foreground text-xs font-black uppercase tracking-widest opacity-60 ml-10">Verify physical stock and reconcile variances</p>
-        </div>
-
-        <Dialog open={open} onOpenChange={setOpen}>
-          <DialogTrigger asChild>
-            <Button className="h-12 px-6 rounded-xl font-bold bg-amber-600 hover:bg-amber-700 text-white shadow-lg shadow-amber-200">
-              <Plus className="h-4 w-4 mr-2" />
-              New Audit Session
-            </Button>
-          </DialogTrigger>
-          <DialogContent className="rounded-2xl border-2">
-            <DialogHeader>
-              <DialogTitle className="text-xl font-black uppercase">Start Audit</DialogTitle>
-              <DialogDescription className="font-medium">
-                Choose a warehouse to start a physical stock count.
-              </DialogDescription>
-            </DialogHeader>
-            <div className="py-4 space-y-4">
-              <div className="space-y-2">
-                <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Select Store Node</Label>
-                <Select value={selectedWarehouse} onValueChange={setSelectedWarehouse}>
-                  <SelectTrigger className="h-12 rounded-xl border-2 border-border/60 bg-muted/10 font-bold">
-                    <SelectValue placeholder="Pick a warehouse..." />
-                  </SelectTrigger>
-                  <SelectContent className="rounded-xl border-2">
-                    {warehouses.map((w: WarehouseType) => (
-                      <SelectItem key={w.id} value={w.id} className="font-bold">
-                        {w.name} <span className="opacity-40 ml-2 font-mono text-[10px]">{w.code}</span>
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+    <div className="pb-32 md:pb-24">
+      <PageHeader 
+        title="Physical Inventory Audit"
+        subtitle="Verify physical stock and reconcile variances"
+        onBack={() => navigate("/stock")}
+        action={
+          <Dialog open={open} onOpenChange={setOpen}>
+            <DialogTrigger asChild>
+              <Button className="h-11 px-6 rounded-xl font-bold uppercase tracking-wider text-xs shadow-sm">
+                <Plus className="h-4 w-4 mr-2" />
+                New Session
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="rounded-2xl border border-border bg-background shadow-lg max-w-md">
+              <DialogHeader>
+                <DialogTitle className="text-xl font-black uppercase tracking-tight">Start Audit</DialogTitle>
+                <DialogDescription className="font-medium text-sm text-muted-foreground mt-1">
+                  Choose a warehouse to start a physical stock count.
+                </DialogDescription>
+              </DialogHeader>
+              <div className="py-4 space-y-4">
+                <div className="space-y-2">
+                  <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Select Warehouse</Label>
+                  <Select value={selectedWarehouse} onValueChange={setSelectedWarehouse}>
+                    <SelectTrigger className="h-12 rounded-xl border border-border bg-card font-bold">
+                      <SelectValue placeholder="Pick a warehouse..." />
+                    </SelectTrigger>
+                    <SelectContent className="rounded-xl border border-border">
+                      {warehouses.map((w: WarehouseType) => (
+                        <SelectItem key={w.id} value={w.id} className="font-bold">
+                          {w.name} <span className="opacity-40 ml-2 font-mono text-[10px]">{w.code}</span>
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
               </div>
-            </div>
-            <DialogFooter>
-              <Button variant="outline" onClick={() => setOpen(false)} className="h-11 rounded-xl font-bold">Cancel</Button>
-              <Button onClick={startAudit} className="h-11 px-8 rounded-xl font-bold bg-amber-600 hover:bg-amber-700 text-white">Start Session</Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
-      </div>
+              <DialogFooter className="gap-2 sm:gap-0 mt-6">
+                <Button variant="outline" onClick={() => setOpen(false)} className="h-11 rounded-xl font-bold">Cancel</Button>
+                <Button onClick={startAudit} className="h-11 px-8 rounded-xl font-bold uppercase tracking-wider text-xs">Start Session</Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
+        }
+      />
 
-      <Card className="rounded-2xl border-2 overflow-hidden shadow-sm">
-        <Table>
-          <TableHeader className="bg-muted/30">
-            <TableRow className="hover:bg-transparent">
-              <TableHead className="font-black text-[10px] uppercase tracking-widest py-4 pl-6">Created At</TableHead>
-              <TableHead className="font-black text-[10px] uppercase tracking-widest">Warehouse</TableHead>
-              <TableHead className="font-black text-[10px] uppercase tracking-widest text-center">Status</TableHead>
-              <TableHead className="font-black text-[10px] uppercase tracking-widest text-right pr-6">Action</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {loading ? (
-              <TableRow>
-                <TableCell colSpan={4} className="h-32 text-center text-muted-foreground font-medium italic">Loading audits...</TableCell>
+      <ResponsiveContainer className="space-y-4 md:space-y-6 mt-1 md:mt-4">
+        <StockTabs />
+
+        <Card className="rounded-2xl border border-border/60 shadow-sm overflow-hidden bg-card">
+          <Table className="w-full border-collapse">
+            <TableHeader>
+              <TableRow className="bg-muted/40 border-b border-border/60 hover:bg-transparent">
+                <TableHead className="py-4 pl-6 text-[10px] font-black uppercase tracking-widest text-muted-foreground/60">Created At</TableHead>
+                <TableHead className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/60">Warehouse</TableHead>
+                <TableHead className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/60 text-center">Status</TableHead>
+                <TableHead className="text-right pr-6 text-[10px] font-black uppercase tracking-widest text-muted-foreground/60">Action</TableHead>
               </TableRow>
-            ) : audits.length === 0 ? (
-              <TableRow>
-                <TableCell colSpan={4} className="h-32 text-center text-muted-foreground font-medium italic">No audits recorded yet</TableCell>
-              </TableRow>
-            ) : (
-              audits.map((a: StockAuditType & { warehouses: WarehouseType }) => (
-                <TableRow key={a.id} className="cursor-pointer group hover:bg-muted/5 font-medium border-b" onClick={() => navigate(`/stock/audits/${a.id}`)}>
-                  <TableCell className="py-4 pl-6">
-                    <div className="flex flex-col">
-                      <span className="font-bold text-sm">{format(new Date(a.created_at), "MMM d, yyyy")}</span>
-                      <span className="text-[10px] text-muted-foreground font-mono">{format(new Date(a.created_at), "HH:mm")}</span>
-                    </div>
-                  </TableCell>
-                  <TableCell>
-                    <div className="flex items-center gap-2">
-                      <div className="p-1.5 bg-brand-primary/5 rounded border border-brand-primary/10">
-                        <WarehouseIcon className="h-3.5 w-3.5 text-brand-primary" />
-                      </div>
-                      <div className="flex flex-col">
-                        <span className="font-bold text-sm uppercase">{a.warehouses?.name}</span>
-                        <span className="text-[10px] font-mono opacity-60">{a.warehouses?.code}</span>
-                      </div>
-                    </div>
-                  </TableCell>
-                  <TableCell className="text-center">
-                    <Badge variant={a.status === 'completed' ? 'default' : a.status === 'draft' ? 'secondary' : 'destructive'} 
-                      className={cn(
-                        "rounded-md px-2 py-0.5 font-black text-[9px] uppercase tracking-widest",
-                        a.status === 'completed' ? 'bg-emerald-100 text-emerald-700 border-emerald-200' : 
-                        a.status === 'draft' ? 'bg-amber-100 text-amber-700 border-amber-200' : ''
-                      )}>
-                      {a.status}
-                    </Badge>
-                  </TableCell>
-                  <TableCell className="text-right pr-6">
-                    <Button size="sm" variant="ghost" className="rounded-xl group-hover:bg-brand-primary group-hover:text-white transition-colors">
-                      <ChevronRight className="h-4 w-4" />
-                    </Button>
+            </TableHeader>
+            <TableBody>
+              {loading ? (
+                Array.from({ length: 4 }).map((_, i) => (
+                  <TableRow key={i}>
+                    <TableCell className="pl-6"><div className="h-5 w-24 animate-pulse bg-muted rounded" /></TableCell>
+                    <TableCell><div className="h-6 w-32 animate-pulse bg-muted rounded" /></TableCell>
+                    <TableCell className="text-center"><div className="h-5 w-16 animate-pulse bg-muted rounded mx-auto" /></TableCell>
+                    <TableCell className="pr-6 text-right"><div className="h-5 w-16 animate-pulse bg-muted rounded ml-auto" /></TableCell>
+                  </TableRow>
+                ))
+              ) : audits.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={4} className="py-16 text-center">
+                    <p className="text-xs font-black text-muted-foreground/40 uppercase tracking-widest">No audit sessions recorded</p>
+                    <p className="text-sm font-medium text-muted-foreground/60 mt-1">Start a new session to begin auditing</p>
                   </TableCell>
                 </TableRow>
-              ))
-            )}
-          </TableBody>
-        </Table>
-      </Card>
+              ) : (
+                audits.map((a: StockAuditType & { warehouses: WarehouseType }) => (
+                  <TableRow key={a.id} className="cursor-pointer group hover:bg-muted/10 font-medium border-b border-border/35 last:border-b-0" onClick={() => navigate(`/stock/audits/${a.id}`)}>
+                    <TableCell className="py-4 pl-6">
+                      <div className="flex flex-col">
+                        <span className="font-bold text-sm text-foreground">{format(new Date(a.created_at), "MMM d, yyyy")}</span>
+                        <span className="text-[10px] text-muted-foreground font-mono">{format(new Date(a.created_at), "HH:mm")}</span>
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex items-center gap-2">
+                        <div className="p-1.5 bg-primary/5 rounded border border-primary/10">
+                          <WarehouseIcon className="h-3.5 w-3.5 text-primary" />
+                        </div>
+                        <div className="flex flex-col">
+                          <span className="font-bold text-sm uppercase text-foreground group-hover:text-primary transition-colors">{a.warehouses?.name}</span>
+                          <span className="text-[10px] font-mono text-muted-foreground">{a.warehouses?.code}</span>
+                        </div>
+                      </div>
+                    </TableCell>
+                    <TableCell className="text-center">
+                      <Badge variant={a.status === 'completed' ? 'default' : a.status === 'draft' ? 'secondary' : 'destructive'} 
+                        className={cn(
+                          "rounded-md px-2 py-0.5 font-black text-[9px] uppercase tracking-widest",
+                          a.status === 'completed' ? 'bg-emerald-100 text-emerald-700 border-emerald-200' : 
+                          a.status === 'draft' ? 'bg-amber-100 text-amber-700 border-amber-200' : ''
+                        )}>
+                        {a.status}
+                      </Badge>
+                    </TableCell>
+                    <TableCell className="text-right pr-6" onClick={(e) => e.stopPropagation()}>
+                      <div className="flex items-center justify-end gap-2">
+                        {a.status !== 'completed' && (
+                          <Button 
+                            size="icon" 
+                            variant="ghost" 
+                            className="rounded-xl h-9 w-9 text-rose-500 hover:text-rose-700 hover:bg-rose-50/50 transition-colors"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setConfirmDeleteId(a.id);
+                            }}
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        )}
+                        <Button size="sm" variant="ghost" className="rounded-xl h-8 w-8 p-0" onClick={() => navigate(`/stock/audits/${a.id}`)}>
+                          <ChevronRight className="h-4 w-4 text-muted-foreground" />
+                        </Button>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ))
+              )}
+            </TableBody>
+          </Table>
+        </Card>
+      </ResponsiveContainer>
+
+      <Dialog open={!!confirmDeleteId} onOpenChange={(open) => !open && setConfirmDeleteId(null)}>
+        <DialogContent className="rounded-2xl border border-border bg-background shadow-lg max-w-md">
+          <DialogHeader>
+            <DialogTitle className="text-xl font-black uppercase text-rose-600 tracking-tight">Delete Audit Session</DialogTitle>
+            <DialogDescription className="font-medium text-sm text-muted-foreground mt-1">
+              Are you sure you want to delete this physical count session? All counted item records within this session will be permanently deleted. This action cannot be undone.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="gap-2 sm:gap-0 mt-6">
+            <Button variant="outline" onClick={() => setConfirmDeleteId(null)} className="h-11 rounded-xl font-bold">
+              Cancel
+            </Button>
+            <Button 
+              onClick={async () => {
+                if (confirmDeleteId) {
+                  await deleteAudit(confirmDeleteId);
+                  setConfirmDeleteId(null);
+                }
+              }} 
+              className="h-11 px-8 rounded-xl font-bold bg-rose-600 hover:bg-rose-700 text-white"
+            >
+              Delete Permanently
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

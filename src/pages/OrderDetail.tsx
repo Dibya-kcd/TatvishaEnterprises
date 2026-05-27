@@ -6,7 +6,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { ArrowLeft, Check, X, Truck, PackageCheck, FileText, Share2, Loader2, Wallet, Trash2, Store, MapPin, Zap, ClipboardList, IndianRupee as IndianRupeeIcon, Calendar, User, Receipt, Printer, Plus, MoreVertical, AlertTriangle, ChevronRight, Pencil } from "lucide-react";
+import { ArrowLeft, Check, X, Truck, PackageCheck, FileText, Share2, Loader2, Wallet, Trash2, Store, MapPin, Zap, ClipboardList, IndianRupee as IndianRupeeIcon, Calendar, User, Receipt, Printer, Plus, MoreVertical, AlertTriangle, ChevronRight, Pencil, RefreshCw } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 import {
   DropdownMenu,
@@ -28,6 +28,7 @@ import { InvoicePreviewModal } from "@/components/invoice/InvoicePreviewModal";
 import { InvoicePDFPreviewModal } from "@/components/invoice/PDFPreviewModal";
 import { useOrders } from "@/hooks/useOrders";
 import { useQueryClient } from "@tanstack/react-query";
+import { convertToBaseUnits } from "@/lib/packaging";
 
 import { ResponsiveContainer, AdaptiveTable, ResponsiveDialog } from "@/components/ui/responsive-ui";
 import { useIsMobile } from "@/lib/responsive";
@@ -313,6 +314,51 @@ export default function OrderDetail() {
 
   React.useEffect(() => { if (id) load(); }, [id, load]);
 
+  const updateStatus = React.useCallback(async (status: Database["public"]["Enums"]["order_status"], extra: Database["public"]["Tables"]["orders"]["Update"] = {}) => {
+    if (!id) return;
+    setBusy(true);
+    const { error } = await supabase.from("orders").update({ status, ...extra }).eq("id", id);
+    setBusy(false);
+    if (error) {
+      console.error('[Context] Update status failed', error);
+      return toast.error(friendlyError(error));
+    }
+    toast.success(`Order ${statusLabel[status] ?? status}`);
+    load();
+  }, [id, load]);
+
+  const can = React.useMemo(() => {
+    if (!order) return { submit: false, approve: false, reject: false, bill: false, dispatch: false, deliver: false, cancel: false, revert: false, edit: false };
+    const isOwn = order.salesperson_id === user?.id;
+    return {
+      submit: (isAdmin || isOwn) && order.status === "draft",
+      approve: isAdmin && order.status === "pending_approval",
+      reject: isAdmin && order.status === "pending_approval",
+      bill: (isAdmin || isOwn) && ["approved", "dispatched", "delivered"].includes(order.status) && (!invoice || invoice.is_void || Math.abs(Number(invoice.total) - Number(order.total)) > 0.01),
+      dispatch: (isAdmin || isOwn) && order.status === "approved" && !!invoice && !invoice.is_void,
+      deliver: (isAdmin || isOwn) && order.status === "dispatched",
+      cancel: false,
+      revert: (isAdmin || isOwn) && ["dispatched", "delivered"].includes(order.status),
+      edit: ["draft", "pending_approval", "approved", "dispatched", "delivered"].includes(order.status) && (isAdmin || isOwn)
+    };
+  }, [order, isAdmin, user?.id, invoice]);
+
+  const nextAction = React.useMemo(() => {
+    if (can.submit) return { label: "Submit For Approval", action: () => updateStatus("pending_approval"), icon: <Check size={18} />, color: "bg-slate-900" };
+    if (can.approve) return { label: "Approve Order", action: () => setConfirmApprove(true), icon: <Check size={18} />, color: "bg-emerald-600" };
+    if (can.bill) {
+      const isMismatch = invoice && !invoice.is_void && Math.abs(Number(invoice.total) - Number(order?.total)) > 0.01;
+      return { 
+        label: isMismatch ? "Regenerate Bill / Correct Totals" : "Generate Bill", 
+        action: () => setBillOpen(true), 
+        icon: <FileText size={18} />, 
+        color: "bg-indigo-600" 
+      };
+    }
+    // Dispatch and Deliver are now handled by icons at the top
+    return null;
+  }, [can, updateStatus, invoice, order?.total]);
+
   if (notFound) return (
     <div className="flex flex-col items-center gap-4 pt-10 text-muted-foreground">
       <PackageCheck className="h-12 w-12 opacity-20" />
@@ -323,18 +369,6 @@ export default function OrderDetail() {
 
   if (!order) return <div className="flex justify-center pt-10"><Loader2 className="h-6 w-6 animate-spin text-primary" /></div>;
 
-  const isOwn = order.salesperson_id === user?.id;
-  const can = {
-    submit: (isAdmin || isOwn) && order.status === "draft",
-    approve: isAdmin && order.status === "pending_approval",
-    reject: isAdmin && order.status === "pending_approval",
-    bill: (isAdmin || isOwn) && ["approved", "dispatched", "delivered"].includes(order.status) && (!invoice || invoice.is_void),
-    dispatch: (isAdmin || isOwn) && order.status === "approved" && !!invoice && !invoice.is_void,
-    deliver: (isAdmin || isOwn) && order.status === "dispatched",
-    cancel: (isAdmin && ["draft","pending_approval","approved","dispatched"].includes(order.status)) || (isOwn && order.status === "draft"),
-    revert: (isAdmin || isOwn) && ["dispatched", "delivered"].includes(order.status)
-  };
-
   const steps = [
     { id: "draft", label: "Ordered" },
     { id: "pending_approval", label: "Approved" },
@@ -342,10 +376,6 @@ export default function OrderDetail() {
     { id: "dispatched", label: "Dispatched" },
     { id: "delivered", label: "Delivered" },
   ];
-
-  const editable = ["draft", "pending_approval", "approved", "dispatched", "delivered"].includes(order.status) && (isAdmin || isOwn);
-
-  const currentStepIdx = steps.findIndex(s => s.id === (order.status === "rejected" ? "pending_approval" : order.status === "cancelled" ? "draft" : order.status));
 
   const deleteOrder = async () => {
     if (!order || busy) return;
@@ -390,7 +420,7 @@ export default function OrderDetail() {
       const productIds = Array.from(new Set(items.map(i => i.product_id)));
       const [{ data: inv }, { data: products }] = await Promise.all([
         supabase.from("inventory").select("product_id, stock_base_units").in("product_id", productIds),
-        supabase.from("products").select("id, units_per_packet, packets_per_case").in("id", productIds)
+        supabase.from("products").select("id, name, unit_type, display_weight_unit, pack_size_unit, pack_size_value, weight_per_unit_grams, units_per_packet, packets_per_case, units_per_case").in("id", productIds)
       ]);
 
       const currentStock: Record<string, number> = {};
@@ -404,11 +434,7 @@ export default function OrderDetail() {
          const p = prodMap.get(item.product_id);
          if (!p) continue;
 
-         let multiplier = 1;
-         if (item.pack_type === 'packet') multiplier = Number(p.units_per_packet || 1);
-         else if (item.pack_type === 'case') multiplier = Number(p.units_per_packet || 1) * Number(p.packets_per_case || 1);
-
-         const needed = item.quantity * multiplier;
+         const needed = convertToBaseUnits(item.quantity, item.pack_type, p as unknown as Product);
          const available = currentStock[item.product_id] || 0;
 
          if (needed > available) {
@@ -517,9 +543,9 @@ export default function OrderDetail() {
     setBusy(true);
     try {
       const { data, error } = await supabase.rpc('revert_order_to_approved', { p_order_id: id! });
-      if (error) throw error;
+      if (error) throw new Error("Database Error: " + error.message);
       const result = data as { success: boolean; error?: string };
-      if (result && !result.success) throw new Error(result.error);
+      if (result && !result.success) throw new Error("Database Error: " + result.error);
       toast.success("Order reverted to approved mode. Stock deductions restored.");
       load();
     } catch (err: unknown) {
@@ -535,11 +561,14 @@ export default function OrderDetail() {
     if (!order) return;
 
     if (["dispatched", "delivered"].includes(order.status)) {
+      if (!isAdmin) {
+        toast.error("Cannot edit a dispatched or delivered order directly. Only owners and admins can revert and edit.");
+        return;
+      }
       if (payments.length > 0) {
         const totalPaid = payments.reduce((s, p) => s + Number(p.amount), 0);
         return toast.error(`Cannot edit — payments of ${fmtINR(totalPaid)} recorded. Delete payments first.`);
       }
-      // Show confirmation — don't revert yet
       setConfirmRevertEdit(true);
       return;
     }
@@ -551,28 +580,15 @@ export default function OrderDetail() {
     const tid = toast.loading("Reverting order to enable editing...");
     try {
       const { data, error } = await supabase.rpc('revert_order_to_approved', { p_order_id: id });
-      if (error) throw error;
+      if (error) throw new Error("Database Error: " + error.message);
       const res = data as { success: boolean; error?: string };
-      if (res && !res.success) throw new Error(res.error);
+      if (res && !res.success) throw new Error("Database Error: " + res.error);
       toast.success("Order reverted. Ready to edit.", { id: tid });
       setConfirmRevertEdit(false);
       navigate(`/orders/${order.id}/edit`);
     } catch (e: unknown) {
       toast.error(friendlyError(e), { id: tid });
     }
-  };
-
-  const updateStatus = async (status: Database["public"]["Enums"]["order_status"], extra: Database["public"]["Tables"]["orders"]["Update"] = {}) => {
-    if (!id) return;
-    setBusy(true);
-    const { error } = await supabase.from("orders").update({ status, ...extra }).eq("id", id);
-    setBusy(false);
-    if (error) {
-      console.error('[Context] Update status failed', error);
-      return toast.error(friendlyError(error));
-    }
-    toast.success(`Order ${statusLabel[status] ?? status}`);
-    load();
   };
 
   const approveOrder = async () => {
@@ -591,18 +607,32 @@ export default function OrderDetail() {
     // Many Supabase setups require this if we don't have a server-side generator
     const tempInvoiceNo = `INV-${order.order_number}-${Math.floor(Math.random() * 1000)}`;
 
+    const newSubtotal = Number(order.subtotal);
+    const newGstTotal = billType === "gst" ? Number(order.gst_total) : 0;
+    const newDiscount = Number(order.discount_amount || 0);
+    const newTotal = billType === "gst" ? Number(order.total) : newSubtotal - newDiscount;
+
+    // Preserve existing amount paid and recompute payment status
+    const existingAmountPaid = invoice ? Number(invoice.amount_paid || 0) : 0;
+    let computedPaymentStatus: Database["public"]["Enums"]["payment_status"] = "unpaid";
+    if (existingAmountPaid >= newTotal) {
+      computedPaymentStatus = "paid";
+    } else if (existingAmountPaid > 0) {
+      computedPaymentStatus = "partial";
+    }
+
     const { data, error } = await supabase.from("invoices").upsert({
       order_id: order.id, 
       shop_id: order.shop_id,
       type: billType,
       invoice_number: invoice?.invoice_number || tempInvoiceNo,
-      subtotal: Number(order.subtotal), 
-      gst_total: billType === "gst" ? Number(order.gst_total) : 0,
-      discount_amount: Number(order.discount_amount || 0),
-      total: billType === "gst" ? Number(order.total) : Number(order.subtotal) - Number(order.discount_amount || 0),
+      subtotal: newSubtotal, 
+      gst_total: newGstTotal,
+      discount_amount: newDiscount,
+      total: newTotal,
       created_by: user!.id,
-      amount_paid: 0,
-      payment_status: 'unpaid',
+      amount_paid: existingAmountPaid,
+      payment_status: computedPaymentStatus,
       is_void: false
     }, { onConflict: 'order_id' }).select().single();
 
@@ -660,160 +690,109 @@ export default function OrderDetail() {
   };
 
   return (
-    <div className="pb-32 sm:pb-12">
+    <div className="pb-32 sm:pb-12 relative">
       <PageHeader 
-        title={`Order #${order.order_number}`}
-        onBack={() => navigate("/orders")}
-        subtitle={
-          <div className="flex flex-col sm:flex-row sm:items-center gap-2 mt-1">
-            <div className="flex items-center gap-2">
-              <Badge className={cn(
-                "rounded-md px-2 py-0.5 font-bold text-[10px] uppercase tracking-wider h-auto border-none",
-                order.status === 'delivered' ? 'bg-emerald-500 text-white' :
-                order.status === 'cancelled' ? 'bg-rose-500 text-white' :
-                order.status === 'pending_approval' ? 'bg-brand-secondary text-white' :
-                order.status === 'dispatched' ? 'bg-indigo-500 text-white' :
-                'bg-slate-800 text-white'
-              )}>
-                {statusLabel[order.status] || order.status.replace('_', ' ')}
-              </Badge>
-              <div className="flex items-center gap-1.5 text-xs font-medium text-slate-500">
-                <Calendar className="h-3.5 w-3.5 text-slate-400" />
-                {fmtDate(order.order_date)}
-              </div>
-            </div>
-            <span className="hidden sm:inline text-slate-300">•</span>
-            <span className="text-xs font-medium text-slate-400">
-              {dynamicSubtitle}
-            </span>
-          </div>
-        }
+        title="Order Details"
         action={
-          <div className="flex items-center gap-2">
-             {isAdmin && (
-               <Button 
-                variant="ghost" 
-                size="icon" 
-                className="h-10 w-10 text-slate-400 hover:text-rose-500 hover:bg-rose-50 transition-colors"
-                onClick={() => setOrderToDelete(true)}
-               >
-                 <Trash2 className="h-5 w-5" />
-               </Button>
-             )}
-             <Button 
-              size={isMobile ? "icon" : "default"}
-              className={cn(
-                "rounded-xl font-bold uppercase tracking-wider transition-all",
-                isMobile ? "h-10 w-10" : "h-10 px-6 text-xs",
-                order.status === "cancelled" ? "bg-slate-100 text-slate-400" : "bg-brand-primary text-white hover:bg-brand-primary/90"
-              )}
-              disabled={order.status === "cancelled"}
-              onClick={() => {
-                if (order.status === "cancelled") return;
-                navigateToEdit();
-              }}
-             >
-               {isMobile ? <Pencil className="h-5 w-5" /> : (["dispatched", "delivered"].includes(order.status) ? "Update Items" : "Edit Order")}
-             </Button>
-          </div>
+          <Button 
+            variant="ghost" 
+            size="icon" 
+            className="h-10 w-10 rounded-xl text-slate-400 hover:text-slate-900 transition-all active:scale-95"
+            onClick={() => navigate("/orders")}
+          >
+            <X size={24} />
+          </Button>
         }
       />
 
-      {/* ── Order Action Bar ── */}
-      {(can.submit || can.approve || can.bill || can.dispatch || can.deliver) && (
-        <div className="fixed bottom-0 left-0 right-0 z-50 p-4 sm:p-0 sm:relative sm:z-auto sm:mb-8 bg-white/80 backdrop-blur-md sm:bg-transparent border-t sm:border-none">
-          <div className="max-w-7xl mx-auto flex flex-col sm:flex-row gap-3 items-center">
-            <Card className="w-full border shadow-lg sm:shadow-sm rounded-2xl overflow-hidden bg-white">
-              <div className="p-3 sm:p-4 flex flex-col sm:flex-row gap-3 items-center">
-                <div className="flex-1 flex flex-wrap gap-2 w-full">
-                  {can.submit && (
-                    <Button onClick={() => updateStatus("pending_approval")}
-                      className="h-10 flex-1 sm:flex-none px-6 rounded-xl bg-slate-900 text-white font-bold text-xs uppercase tracking-wider">
-                      Submit For Approval
-                    </Button>
-                  )}
+      <ResponsiveContainer className="mt-6 space-y-8">
+        <div className="flex flex-col gap-3 bg-white p-4 sm:p-6 rounded-2xl border border-slate-100 shadow-sm animate-in fade-in slide-in-from-top-4 duration-500">
+          {/* Line 1: Order ID */}
+          <div className="w-full">
+             <span className="text-base sm:text-2xl font-black text-slate-900 tracking-tight">
+               Order #{order.order_number}
+             </span>
+          </div>
 
-                  {can.approve && (
-                    <Button onClick={() => setConfirmApprove(true)}
-                      className="h-10 flex-1 sm:flex-none px-6 rounded-xl bg-emerald-600 text-white font-bold text-xs uppercase tracking-wider">
-                      Approve Order
-                    </Button>
-                  )}
+          {/* Line 2: Status Badge + Action Icons */}
+          <div className="flex items-center justify-between gap-2 w-full pt-2 border-t border-slate-50">
+            <Badge className={cn(
+              "rounded-md px-2 py-0.5 h-5 text-[9px] font-black uppercase tracking-widest border-none whitespace-nowrap shadow-none",
+              statusColor[order.status as keyof typeof statusColor]
+            )}>
+              {statusLabel[order.status] || order.status}
+            </Badge>
 
-                  {can.bill && (
-                    <Button onClick={() => setBillOpen(true)}
-                      className="h-10 flex-1 sm:flex-none px-6 rounded-xl bg-indigo-600 text-white font-bold text-xs uppercase tracking-wider">
-                      Generate Bill
-                    </Button>
-                  )}
-
-                  {can.dispatch && (
-                    <Button onClick={() => setConfirmDispatch(true)}
-                      className="h-10 flex-1 sm:flex-none px-6 rounded-xl bg-amber-600 text-white font-bold text-xs uppercase tracking-wider">
-                      <Truck className="h-4 w-4 mr-2" /> Dispatch
-                    </Button>
-                  )}
-
-                  {can.deliver && (
-                    <Button onClick={() => setConfirmDeliver(true)}
-                      className="h-10 flex-1 sm:flex-none px-6 rounded-xl bg-emerald-600 text-white font-bold text-xs uppercase tracking-wider">
-                      <PackageCheck className="h-4 w-4 mr-2" /> Mark Delivered
-                    </Button>
-                  )}
-                  
-                  {!invoice && order.status === 'approved' && (
-                    <div className="flex items-center gap-2 bg-amber-50 border border-amber-100 px-3 rounded-lg py-1.5">
-                      <AlertTriangle className="h-4 w-4 text-amber-600" />
-                      <span className="text-[10px] font-bold text-amber-800 uppercase">Billing Required</span>
-                    </div>
-                  )}
-                </div>
-
-                <div className="flex items-center gap-2 w-full sm:w-auto shrink-0 border-t sm:border-t-0 sm:border-l border-slate-100 pt-3 sm:pt-0 sm:pl-3">
+            <div className="flex items-center gap-1 shrink-0">
+                {can.edit && (
                   <Button 
-                    variant="outline" 
-                    className="flex-1 sm:flex-none h-10 px-4 rounded-xl font-bold text-xs"
+                    variant="ghost" 
+                    size="icon" 
+                    className="h-8 w-8 p-0 hover:bg-rose-50 transition-colors" 
                     onClick={navigateToEdit}
                   >
-                    Edit
+                    <Pencil size={18} className="text-rose-600" />
                   </Button>
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <Button variant="ghost" size="icon" className="h-10 w-10 rounded-xl text-slate-400">
-                        <MoreVertical size={20} />
-                      </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end" className="w-48 p-1 rounded-xl">
-                      {can.revert && (
-                        <DropdownMenuItem onClick={revertOrder} className="font-semibold text-xs">
-                          Rollback status
-                        </DropdownMenuItem>
-                      )}
-                      {can.reject && (
-                        <DropdownMenuItem onClick={() => updateStatus("rejected")} className="font-semibold text-xs text-rose-600">
-                          Reject Order
-                        </DropdownMenuItem>
-                      )}
-                      {can.cancel && (
-                         <DropdownMenuItem onClick={() => setConfirmCancel(true)} className="font-semibold text-xs text-rose-600">
-                           Cancel Order
-                         </DropdownMenuItem>
-                      )}
-                      {isAdmin && (
-                        <DropdownMenuItem onClick={() => setOrderToDelete(true)} className="font-semibold text-xs text-rose-600">
-                          Delete Order
-                        </DropdownMenuItem>
-                      )}
-                    </DropdownMenuContent>
-                  </DropdownMenu>
-                </div>
-              </div>
-            </Card>
+                )}
+                {can.dispatch && (
+                  <Button 
+                    variant="ghost" 
+                    size="icon" 
+                    className="h-8 w-8 p-0 hover:bg-sky-50 transition-colors" 
+                    onClick={() => setConfirmDispatch(true)}
+                  >
+                    <Truck size={18} className="text-sky-600" />
+                  </Button>
+                )}
+                {can.deliver && (
+                  <Button 
+                    variant="ghost" 
+                    size="icon" 
+                    className="h-8 w-8 p-0 hover:bg-emerald-50 transition-colors" 
+                    onClick={() => setConfirmDeliver(true)}
+                  >
+                    <PackageCheck size={18} className="text-emerald-600" />
+                  </Button>
+                )}
+                {isAdmin && (
+                  <Button 
+                    variant="ghost" 
+                    size="icon" 
+                    className="h-8 w-8 p-0 hover:bg-rose-50 transition-colors" 
+                    onClick={() => setOrderToDelete(true)}
+                  >
+                    <Trash2 size={18} className="text-rose-600" />
+                  </Button>
+                )}
+            </div>
+          </div>
+          
+          {/* Line 3: Date */}
+          <div className="flex items-center gap-2 text-[10px] font-bold text-slate-400 px-0.5">
+            <Calendar className="h-3 w-3 text-slate-300" />
+            <span>{fmtDate(order.order_date)}</span>
           </div>
         </div>
-      )}
 
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+        {/* ── Order Action Bar ── */}
+        {nextAction && (
+          <div className="fixed bottom-0 left-0 right-0 z-50 p-4 sm:p-0 sm:relative sm:z-auto bg-white/80 backdrop-blur-md sm:bg-transparent border-t sm:border-none">
+            <div className="max-w-md mx-auto sm:max-w-none">
+              <Button 
+                onClick={nextAction.action}
+                className={cn(
+                  "h-14 w-full rounded-2xl text-white font-black text-sm uppercase tracking-wider gap-3 shadow-xl active:scale-[0.98] transition-all",
+                  nextAction.color
+                )}
+              >
+                {nextAction.icon}
+                {nextAction.label}
+              </Button>
+            </div>
+          </div>
+        )}
+
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start pb-20">
         {/* Left Column: Summary */}
         <div className="lg:col-span-4 space-y-6 order-last lg:order-first">
           <Card className="border border-border/40 shadow-sm rounded-2xl overflow-hidden bg-white">
@@ -822,7 +801,7 @@ export default function OrderDetail() {
                 <Store size={20} />
               </div>
               <div className="min-w-0">
-                <h3 className="text-sm font-semibold text-slate-900 leading-none truncate">{order.shop.name}</h3>
+                <h3 className="text-sm font-semibold text-slate-900 leading-none">{order.shop.name}</h3>
                 <p className="text-[10px] font-medium text-slate-500 uppercase tracking-wider mt-1">Shop Details</p>
               </div>
             </div>
@@ -931,9 +910,6 @@ export default function OrderDetail() {
                       <div className="py-4">
                         <p className="font-semibold text-sm text-slate-900 leading-tight mb-1">{item.product.name}</p>
                         <div className="flex items-center gap-2">
-                          <span className="text-[10px] font-semibold text-brand-primary uppercase">
-                            {formatPackLabel(item.pack_type)}
-                          </span>
                           {item.batch?.batch_number && (
                             <Badge variant="outline" className="text-[9px] font-bold px-1.5 py-0 h-4 border-amber-100 text-amber-600 bg-amber-50 rounded-sm">
                               {item.batch.batch_number}
@@ -949,7 +925,7 @@ export default function OrderDetail() {
                     className: "text-center",
                     render: (item: OrderItem) => (
                       <span className="font-semibold text-sm tabular-nums text-slate-700">
-                        {Number(item.quantity).toLocaleString()}
+                        {Number(item.quantity).toLocaleString()} {formatPackLabel(item.pack_type)}
                       </span>
                     )
                   },
@@ -980,7 +956,6 @@ export default function OrderDetail() {
                       <div className="min-w-0 flex-1 pr-4">
                         <h4 className="font-semibold text-xs text-slate-900 leading-tight">{item.product.name}</h4>
                         <div className="flex items-center gap-2 mt-1">
-                           <span className="text-[10px] font-bold text-brand-primary uppercase">{formatPackLabel(item.pack_type)}</span>
                            {item.batch?.batch_number && (
                             <Badge variant="outline" className="text-[8px] font-bold px-1 py-0 h-3.5 border-amber-100 text-amber-600 bg-amber-50 rounded-sm">
                               {item.batch.batch_number}
@@ -1092,12 +1067,15 @@ export default function OrderDetail() {
                               <p className="text-xl font-bold">{invoice.invoice_number}</p>
                            </div>
                            
-                           <div className="grid grid-cols-2 gap-3">
-                              <Button onClick={shareBill} className="bg-white text-slate-900 hover:bg-white/90 rounded-xl h-10 font-bold text-xs border-none">
-                                 <Share2 className="mr-2 h-4 w-4" /> Share
+                           <div className="grid grid-cols-3 gap-2">
+                              <Button onClick={shareBill} className="bg-white text-slate-900 hover:bg-white/90 rounded-xl h-10 font-bold text-[11px] border-none px-1">
+                                 <Share2 className="mr-1 h-3.5 w-3.5" /> Share
                               </Button>
-                              <Button onClick={printThermal} className="bg-white/5 text-white hover:bg-white/10 border-white/10 rounded-xl h-10 font-bold text-xs">
-                                 <Printer className="mr-2 h-4 w-4" /> Thermal
+                              <Button onClick={printThermal} className="bg-white/5 text-white hover:bg-white/10 border-white/10 rounded-xl h-10 font-bold text-[11px] px-1">
+                                 <Printer className="mr-1 h-3.5 w-3.5" /> Thermal
+                              </Button>
+                              <Button onClick={() => setBillOpen(true)} className="bg-white/5 text-white hover:bg-white/10 border-white/10 rounded-xl h-10 font-bold text-[11px] px-1">
+                                 <RefreshCw className="mr-1 h-3.5 w-3.5" /> Re-bill
                               </Button>
                            </div>
                         </CardContent>
@@ -1211,6 +1189,7 @@ export default function OrderDetail() {
           )}
         </div>
       </div>
+      </ResponsiveContainer>
 
       <Sheet open={billOpen} onOpenChange={setBillOpen}>
         <SheetContent side={isMobile ? "bottom" : "right"} className={cn("p-0 focus:outline-none border-l border-slate-100 shadow-2xl overflow-hidden flex flex-col", isMobile ? "h-[92dvh] rounded-t-[2.5rem]" : "w-full md:max-w-md")}>

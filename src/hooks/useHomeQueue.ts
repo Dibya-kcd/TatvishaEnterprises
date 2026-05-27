@@ -47,6 +47,9 @@ export type AdminStats = {
   }[];
   topShops: { shop_id: string; name: string; total: number }[];
   trend: { date: string; total: number }[];
+  totalInventoryValue: number;
+  todayCollections: number;
+  warehouseSplit: { name: string; code: string; total_value: number; item_count: number }[];
   recent: {
     id: string;
     order_number: string;
@@ -54,6 +57,7 @@ export type AdminStats = {
     total: number;
     created_at: string;
     shop: { name: string } | null;
+    payment_status?: string;
   }[];
   topSalespeople: { name: string; total: number }[];
 };
@@ -100,7 +104,8 @@ export function useHomeQueue() {
       status: String((o as Record<string, unknown>).status),
       total: Number((o as Record<string, unknown>).total || 0),
       created_at: String((o as Record<string, unknown>).created_at),
-      shop: { name: String((o as Record<string, unknown>).shop_name || "—") }
+      shop: { name: String((o as Record<string, unknown>).shop_name || "—") },
+      payment_status: String((o as Record<string, unknown>).payment_status || "unpaid")
     }));
 
     // Pending Queue hydration
@@ -145,6 +150,14 @@ export function useHomeQueue() {
       trend,
       recent,
       topSalespeople,
+      totalInventoryValue: Number(d.totalInventoryValue || 0),
+      todayCollections: Number(d.todayCollections || 0),
+      warehouseSplit: ((d.warehouseSplit as unknown[]) || []).map((w: Record<string, unknown>) => ({
+        name: String(w.name || "Unknown"),
+        code: String(w.code || ""),
+        total_value: Number(w.total_value || 0),
+        item_count: Number(w.item_count || 0)
+      })),
     } as AdminStats;
   }, [dashboardData]);
 

@@ -98,6 +98,6 @@ describe("OrderSummary Integration", () => {
     );
 
     expect(screen.getByText("Save Draft")).toBeInTheDocument();
-    expect(screen.getByText("Submit Order")).toBeInTheDocument();
+    expect(screen.getByText("Submit for Approval")).toBeInTheDocument();
   });
 });

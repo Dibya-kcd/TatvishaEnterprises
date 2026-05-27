@@ -6,7 +6,7 @@ import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Search, Edit2, ChevronLeft, Loader2, Save, History, FileText, CheckCircle2, XCircle, PackageCheck, AlertCircle, Trash2, ArrowRight, Plus } from "lucide-react";
+import { Search, Edit2, ChevronLeft, Loader2, Save, History, FileText, CheckCircle2, XCircle, PackageCheck, AlertCircle, Trash2, ArrowRight, Plus, X } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { fmtDate, fmtINR } from "@/lib/format";
 import { toast } from "sonner";
@@ -228,21 +228,21 @@ export default function StockGRNs() {
           <ChevronLeft className="h-5 w-5" />
         </Button>
         <div>
-          <h1 className="text-2xl font-black tracking-tight">Inward GRN History</h1>
-          <p className="text-xs text-muted-foreground font-black uppercase tracking-widest opacity-60">Approval & Posting Workflow</p>
+          <h1 className="text-2xl font-bold tracking-tight">Purchase Records</h1>
+          <p className="text-xs text-muted-foreground font-bold uppercase tracking-wider opacity-60">Manage new stock entries</p>
         </div>
       </div>
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         {[
-          { label: 'Pending Approval', value: grns.filter(g => g.status === 'pending').length, color: 'text-amber-600' },
-          { label: 'Awaiting Posting', value: grns.filter(g => g.status === 'approved').length, color: 'text-blue-600' },
-          { label: 'Posted Month', value: grns.filter(g => g.status === 'posted' && g.invoice_date.startsWith(new Date().toISOString().slice(0, 7))).length, color: 'text-emerald-600' },
-          { label: 'Total Volume', value: `₹${(grns.filter(g => g.status === 'posted').reduce((s, g) => s + (g.total_amount || 0), 0) / 100000).toFixed(1)}L`, color: 'text-primary' },
+          { label: 'Waiting for Approval', value: grns.filter(g => g.status === 'pending').length, color: 'text-amber-600' },
+          { label: 'Ready to Add', value: grns.filter(g => g.status === 'approved').length, color: 'text-blue-600' },
+          { label: 'Added this Month', value: grns.filter(g => g.status === 'posted' && g.invoice_date.startsWith(new Date().toISOString().slice(0, 7))).length, color: 'text-emerald-600' },
+          { label: 'Total Value', value: fmtINR(grns.filter(g => g.status === 'posted').reduce((s, g) => s + (g.total_amount || 0), 0)), color: 'text-primary' },
         ].map(s => (
           <Card key={s.label} className="p-5 rounded-[1.5rem] border-2 shadow-lg shadow-primary/5">
-            <div className="text-[10px] text-muted-foreground font-black uppercase tracking-widest opacity-60">{s.label}</div>
-            <div className={cn("text-2xl font-black mt-1", s.color)}>{loading ? '...' : s.value}</div>
+            <div className="text-[10px] text-muted-foreground font-bold uppercase tracking-wider opacity-60">{s.label}</div>
+            <div className={cn("text-xl md:text-2xl font-bold mt-1 truncate", s.color)}>{loading ? '...' : s.value}</div>
           </Card>
         ))}
       </div>
@@ -253,18 +253,27 @@ export default function StockGRNs() {
             <div className="relative flex-1 max-w-sm">
               <Search className="absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground opacity-50" />
               <Input 
-                className="pl-11 h-12 rounded-2xl border-2 bg-muted/20 focus:ring-primary/20" 
-                placeholder="Search all manifests..." 
+                className="pl-11 pr-10 h-12 rounded-2xl border-2 bg-muted/20 focus:ring-primary/20 font-medium" 
+                placeholder="Search entries..." 
                 value={search}
                 onChange={e => setSearch(e.target.value)}
               />
+              {search && (
+                <button 
+                  onClick={() => setSearch("")}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 h-8 w-8 flex items-center justify-center text-slate-300 hover:text-slate-600 transition-colors"
+                  title="Clear search"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              )}
             </div>
             <div className="flex gap-2">
-              <Button variant="outline" className="shrink-0 h-11 px-6 rounded-2xl font-black uppercase tracking-widest text-[10px] border-2" onClick={() => navigate("/stock/movement?filter=purchase")}>
-                <History className="h-4 w-4 mr-2" /> Posting History
+              <Button variant="outline" className="shrink-0 h-11 px-6 rounded-2xl font-bold uppercase tracking-wider text-[10px] border-2" onClick={() => navigate("/stock/movement?filter=purchase")}>
+                <History className="h-4 w-4 mr-2" /> View History
               </Button>
-              <Button className="shrink-0 h-11 px-6 rounded-2xl font-black uppercase tracking-widest text-[10px] bg-brand-primary text-white" onClick={() => navigate("/stock/import")}>
-                <Plus className="h-4 w-4 mr-2" /> New GRN
+              <Button className="shrink-0 h-11 px-6 rounded-2xl font-bold uppercase tracking-wider text-[10px] bg-brand-primary text-white" onClick={() => navigate("/stock/import")}>
+                <Plus className="h-4 w-4 mr-2" /> Add New Stock
               </Button>
             </div>
           </div>
@@ -277,7 +286,7 @@ export default function StockGRNs() {
                 size="sm"
                 onClick={() => setStatusFilter(t)}
                 className={cn(
-                  "rounded-xl px-4 font-black uppercase tracking-widest text-[9px] h-8 transition-all border-2",
+                  "rounded-xl px-4 font-bold uppercase tracking-wider text-[9px] h-8 transition-all border-2",
                   statusFilter === t 
                     ? "bg-primary text-white border-primary shadow-md shadow-primary/20 scale-[1.02]" 
                     : "bg-card border-border/50 text-muted-foreground hover:border-primary/30"
@@ -303,7 +312,7 @@ export default function StockGRNs() {
                   <div className="flex items-start justify-between gap-3 mb-3">
                     <div className="min-w-0 flex-1">
                       <p className="font-black text-sm uppercase tracking-tight truncate text-primary">{grn.invoice_number}</p>
-                      <p className="text-[10px] font-black uppercase text-muted-foreground truncate opacity-70">{grn.supplier_name || '—'}</p>
+                      <p className="text-[10px] font-black uppercase text-muted-foreground opacity-70">{grn.supplier_name || '—'}</p>
                     </div>
                     {getStatusBadge(grn.status)}
                   </div>
@@ -325,12 +334,12 @@ export default function StockGRNs() {
               <Table className="w-full table-fixed">
                 <TableHeader>
                   <TableRow className="bg-muted/30 border-y-2 border-border/50">
-                    <TableHead className="py-4 pl-6 text-[10px] font-black uppercase tracking-widest text-muted-foreground w-[120px] hidden lg:table-cell">GRN Temporal</TableHead>
-                    <TableHead className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Identifier Reference</TableHead>
-                    <TableHead className="text-[10px] font-black uppercase tracking-widest text-muted-foreground hidden xl:table-cell">Supplier Source</TableHead>
-                    <TableHead className="text-[10px] font-black uppercase tracking-widest text-muted-foreground text-center hidden xl:table-cell">Status Flag</TableHead>
-                    <TableHead className="text-right text-[10px] font-black uppercase tracking-widest text-muted-foreground w-[120px]">Valuation</TableHead>
-                    <TableHead className="pr-6 text-[10px] font-black uppercase tracking-widest text-muted-foreground text-center w-[100px]">Control</TableHead>
+                    <TableHead className="py-4 pl-6 text-[10px] font-bold uppercase tracking-wider text-muted-foreground w-[120px] hidden lg:table-cell">Date</TableHead>
+                    <TableHead className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Invoice Number</TableHead>
+                    <TableHead className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground hidden xl:table-cell">Supplier Name</TableHead>
+                    <TableHead className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground text-center hidden xl:table-cell">Status</TableHead>
+                    <TableHead className="text-right text-[10px] font-bold uppercase tracking-wider text-muted-foreground w-[120px]">Value</TableHead>
+                    <TableHead className="pr-6 text-[10px] font-bold uppercase tracking-wider text-muted-foreground text-center w-[100px]">Action</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -349,7 +358,7 @@ export default function StockGRNs() {
                           {grn.invoice_number}
                         </div>
                       </TableCell>
-                      <TableCell className="text-sm font-black uppercase tracking-tight text-foreground group-hover:text-primary transition-colors truncate hidden xl:table-cell">{grn.supplier_name || "—"}</TableCell>
+                      <TableCell className="text-sm font-black uppercase tracking-tight text-foreground group-hover:text-primary transition-colors hidden xl:table-cell">{grn.supplier_name || "—"}</TableCell>
                       <TableCell className="text-center hidden xl:table-cell">{getStatusBadge(grn.status)}</TableCell>
                       <TableCell className="text-right text-xs sm:text-sm font-black text-primary tabular-nums break-words">{fmtINR(grn.total_amount)}</TableCell>
                       <TableCell className="pr-6 text-center">
@@ -379,34 +388,34 @@ export default function StockGRNs() {
             <div className="p-6 pb-0">
               {isMobile && <div className="w-12 h-1.5 bg-muted rounded-full mx-auto mb-6" />}
               <SheetHeader className="mb-6">
-                <SheetTitle className="text-2xl font-black text-center">Edit Inward GRN</SheetTitle>
-                <p className="text-xs font-black uppercase tracking-widest text-muted-foreground opacity-60 text-center">Protocol: Manifest Correction</p>
+                <SheetTitle className="text-2xl font-bold text-center">Edit Stock Entry</SheetTitle>
+                <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground opacity-60 text-center">Update purchase details</p>
               </SheetHeader>
             </div>
             
             {editingGRN && (
               <div className="flex-1 overflow-y-auto px-6 pb-24 space-y-6 max-w-xl mx-auto w-full">
                 <div className="p-5 bg-muted/30 rounded-[1.5rem] border-2 border-border/50 text-[10px] space-y-1">
-                  <div className="text-muted-foreground font-black uppercase tracking-widest opacity-70 flex items-center gap-2">
-                    <AlertCircle className="h-3 w-3" /> System Audit ID
+                  <div className="text-muted-foreground font-bold uppercase tracking-wider opacity-70 flex items-center gap-2">
+                    <AlertCircle className="h-3 w-3" /> Entry ID
                   </div>
                   <div className="font-mono bg-background p-3 rounded-xl border-2 break-all text-foreground/80 font-bold">{editingGRN.id}</div>
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="space-y-1.5">
-                    <Label className="text-[10px] font-black uppercase text-muted-foreground ml-1">Ref Number</Label>
+                    <Label className="text-[10px] font-bold uppercase text-muted-foreground ml-1">Invoice Number</Label>
                     <Input 
-                      className="h-14 rounded-2xl border-2 bg-muted/20 font-black focus:ring-primary/20"
+                      className="h-14 rounded-2xl border-2 bg-muted/20 font-bold focus:ring-primary/20"
                       value={editingGRN.invoice_number} 
                       onChange={e => setEditingGRN({...editingGRN, invoice_number: e.target.value})} 
                     />
                   </div>
                   <div className="space-y-1.5">
-                    <Label className="text-[10px] font-black uppercase text-muted-foreground ml-1">GRN Date</Label>
+                    <Label className="text-[10px] font-bold uppercase text-muted-foreground ml-1">Invoice Date</Label>
                     <Input 
                       type="date"
-                      className="h-14 rounded-2xl border-2 bg-muted/20 font-black focus:ring-primary/20"
+                      className="h-14 rounded-2xl border-2 bg-muted/20 font-bold focus:ring-primary/20"
                       value={editingGRN.invoice_date} 
                       onChange={e => setEditingGRN({...editingGRN, invoice_date: e.target.value})} 
                     />
@@ -414,30 +423,30 @@ export default function StockGRNs() {
                 </div>
 
                 <div className="space-y-1.5">
-                  <Label className="text-[10px] font-black uppercase text-muted-foreground ml-1">Supplier Entity</Label>
+                  <Label className="text-[10px] font-bold uppercase text-muted-foreground ml-1">Supplier Name</Label>
                   <SupplierCombobox 
                     value={editingGRN.supplier_name || ""} 
                     onChange={v => setEditingGRN({...editingGRN, supplier_name: v})} 
                     placeholder="Supplier Name"
-                    className="h-14 border-2 bg-muted/20 font-black focus:ring-primary/20 uppercase"
+                    className="h-14 border-2 bg-muted/20 font-bold focus:ring-primary/20 uppercase"
                   />
                 </div>
 
                 <div className="space-y-1.5">
-                  <Label className="text-[10px] font-black uppercase text-muted-foreground ml-1">Internal Reference Notes</Label>
+                  <Label className="text-[10px] font-bold uppercase text-muted-foreground ml-1">Notes</Label>
                   <Input 
                     className="h-14 rounded-2xl border-2 bg-muted/20 font-medium focus:ring-primary/20"
                     value={editingGRN.notes || ""} 
                     onChange={e => setEditingGRN({...editingGRN, notes: e.target.value})} 
-                    placeholder="Log discrepancy or correction rationale..."
+                    placeholder="Add a note or reason for changes..."
                   />
                 </div>
               </div>
             )}
 
             <div className="p-6 pt-4 bg-background border-t border-border/50 flex gap-3 shrink-0 relative z-20">
-              <Button variant="outline" className="h-14 rounded-2xl flex-1 font-black uppercase tracking-widest text-xs border-2" onClick={() => setEditingGRN(null)}>Discard</Button>
-              <Button className="h-14 rounded-2xl flex-[2] font-black uppercase tracking-widest text-xs shadow-xl shadow-primary/20" onClick={handleUpdate} disabled={saveLoading}>
+              <Button variant="outline" className="h-14 rounded-2xl flex-1 font-bold uppercase tracking-wider text-xs border-2" onClick={() => setEditingGRN(null)}>Discard</Button>
+              <Button className="h-14 rounded-2xl flex-[2] font-bold uppercase tracking-wider text-xs shadow-xl shadow-primary/20" onClick={handleUpdate} disabled={saveLoading}>
                 {saveLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
                 Save Changes
               </Button>
@@ -454,8 +463,8 @@ export default function StockGRNs() {
               <SheetHeader className="mb-6">
                 <div className="flex items-center justify-between px-2">
                   <div className="text-left">
-                    <SheetTitle className="text-2xl font-black">Manifest Summary</SheetTitle>
-                    <p className="text-xs font-black uppercase tracking-widest text-muted-foreground opacity-60">REF: {viewingGRN?.invoice_number} · {viewingGRN && fmtDate(viewingGRN.invoice_date)}</p>
+                    <SheetTitle className="text-2xl font-bold">Stock Entry Details</SheetTitle>
+                    <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground opacity-60">Invoice: {viewingGRN?.invoice_number} · {viewingGRN && fmtDate(viewingGRN.invoice_date)}</p>
                   </div>
                   {viewingGRN && getStatusBadge(viewingGRN.status)}
                 </div>
@@ -465,36 +474,36 @@ export default function StockGRNs() {
             <div className="flex-1 overflow-y-auto px-6 pb-32 space-y-8">
               {viewingGRN && viewingGRN.supplier_name && (
                 <div className="p-6 bg-muted/20 rounded-[2rem] border-2 border-border/50">
-                  <div className="text-[10px] font-black uppercase text-muted-foreground tracking-widest opacity-70 mb-4 ml-1">Supplier Dossier</div>
+                  <div className="text-[10px] font-bold uppercase text-muted-foreground tracking-wider opacity-70 mb-4 ml-1">Supplier Info</div>
                   <div className="flex items-center gap-4">
-                    <div className="h-12 w-12 rounded-2xl bg-white border-2 flex items-center justify-center font-black text-xl text-primary shadow-sm">
+                    <div className="h-12 w-12 rounded-2xl bg-white border-2 flex items-center justify-center font-bold text-xl text-primary shadow-sm">
                       {viewingGRN.supplier_name.charAt(0).toUpperCase()}
                     </div>
                     <div>
-                      <div className="font-black text-lg uppercase tracking-tight leading-none">{viewingGRN.supplier_name}</div>
-                      <div className="text-[10px] font-bold text-muted-foreground mt-1 uppercase tracking-wider">{viewingGRN.notes || "No internal dossier notes available"}</div>
+                      <div className="font-bold text-lg uppercase tracking-tight leading-none">{viewingGRN.supplier_name}</div>
+                      <div className="text-[10px] font-medium text-muted-foreground mt-1 uppercase tracking-wider">{viewingGRN.notes || "No notes available"}</div>
                     </div>
                   </div>
                 </div>
               )}
 
               <div className="space-y-4">
-                <div className="text-[10px] font-black uppercase text-muted-foreground tracking-widest opacity-70 ml-1">Line Item Audit</div>
+                <div className="text-[10px] font-bold uppercase text-muted-foreground tracking-wider opacity-70 ml-1">Items List</div>
                 <div className="border-2 rounded-[2rem] overflow-x-auto bg-white shadow-sm no-scrollbar">
                     <Table className="min-w-[700px] lg:min-w-full">
                       <TableHeader>
                         <TableRow className="bg-muted/30 border-b-2">
-                          <TableHead className="py-4 pl-6 text-[10px] font-black uppercase tracking-widest text-muted-foreground whitespace-nowrap">Item with SKU</TableHead>
-                          <TableHead className="text-[10px] font-black uppercase tracking-widest text-center text-muted-foreground">QTY</TableHead>
-                          <TableHead className="text-[10px] font-black uppercase tracking-widest text-center text-muted-foreground">PACK</TableHead>
-                          <TableHead className="text-[10px] font-black uppercase tracking-widest text-center text-muted-foreground hidden sm:table-cell">PCS</TableHead>
-                          <TableHead className="text-[10px] font-black uppercase tracking-widest text-center text-muted-foreground hidden md:table-cell">WEIGHT</TableHead>
-                          <TableHead className="text-[10px] font-black uppercase tracking-widest text-right text-muted-foreground whitespace-nowrap hidden sm:table-cell">COST / PC</TableHead>
-                          <TableHead className="text-[10px] font-black uppercase tracking-widest text-right text-muted-foreground hidden lg:table-cell">PROFIT</TableHead>
-                          <TableHead className="text-[10px] font-black uppercase tracking-widest text-right text-muted-foreground hidden lg:table-cell">LANDED / KG</TableHead>
-                          <TableHead className="text-[10px] font-black uppercase tracking-widest text-right text-muted-foreground whitespace-nowrap hidden lg:table-cell">INV / CASE</TableHead>
-                          <TableHead className="text-[10px] font-black uppercase tracking-widest text-right text-muted-foreground pr-4">INV TOTAL</TableHead>
-                          <TableHead className="pr-6 text-center text-[10px] font-black uppercase tracking-widest text-muted-foreground">EXPIRY</TableHead>
+                          <TableHead className="py-4 pl-6 text-[10px] font-bold uppercase tracking-wider text-muted-foreground whitespace-nowrap">Product</TableHead>
+                          <TableHead className="text-[10px] font-bold uppercase tracking-wider text-center text-muted-foreground">Quantity</TableHead>
+                          <TableHead className="text-[10px] font-bold uppercase tracking-wider text-center text-muted-foreground">Unit</TableHead>
+                          <TableHead className="text-[10px] font-bold uppercase tracking-wider text-center text-muted-foreground hidden sm:table-cell">Total Pieces</TableHead>
+                          <TableHead className="text-[10px] font-bold uppercase tracking-wider text-center text-muted-foreground hidden md:table-cell">Weight</TableHead>
+                          <TableHead className="text-[10px] font-bold uppercase tracking-wider text-right text-muted-foreground whitespace-nowrap hidden sm:table-cell">Cost / Pc</TableHead>
+                          <TableHead className="text-[10px] font-bold uppercase tracking-wider text-right text-muted-foreground hidden lg:table-cell">Margin</TableHead>
+                          <TableHead className="text-[10px] font-bold uppercase tracking-wider text-right text-muted-foreground hidden lg:table-cell">Cost / KG</TableHead>
+                          <TableHead className="text-[10px] font-bold uppercase tracking-wider text-right text-muted-foreground whitespace-nowrap hidden lg:table-cell">Cost / Case</TableHead>
+                          <TableHead className="text-[10px] font-bold uppercase tracking-wider text-right text-muted-foreground pr-4">Total Amount</TableHead>
+                          <TableHead className="pr-6 text-center text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Expiry</TableHead>
                         </TableRow>
                       </TableHeader>
                       <TableBody>
@@ -580,7 +589,7 @@ export default function StockGRNs() {
                           return (
                             <TableRow key={i} className="border-b last:border-0 group hover:bg-muted/5 transition-colors">
                               <TableCell className="pl-6 py-4">
-                                <div className="text-xs font-black uppercase tracking-tight text-foreground group-hover:text-primary transition-colors truncate max-w-[150px] sm:max-w-xs">{p?.name || 'Unknown'}</div>
+                                <div className="text-xs font-black uppercase tracking-tight text-foreground group-hover:text-primary transition-colors">{p?.name || 'Unknown'}</div>
                                 <div className="text-[9px] font-black font-mono text-muted-foreground opacity-60 tracking-tighter uppercase">{p?.sku || 'SKU_ORPHAN'}</div>
                               </TableCell>
                               <TableCell className="text-center font-bold text-xs">{qty}</TableCell>
@@ -648,33 +657,33 @@ export default function StockGRNs() {
                       <CheckCircle2 className="h-8 w-8" />
                     </div>
                     <div>
-                      <div className="text-blue-800 font-black text-xl uppercase tracking-tight">Certified Approved</div>
-                      <p className="text-xs text-blue-600 font-medium max-w-sm mt-1 leading-relaxed opacity-80">This manifest has passed protocol check. Posting will commit units to inventory batches and sync system pricing.</p>
+                      <div className="text-blue-800 font-bold text-xl uppercase tracking-tight">Approved</div>
+                      <p className="text-xs text-blue-600 font-medium max-w-sm mt-1 leading-relaxed opacity-80">This entry is approved. Confirming it will add items to your stock and update prices.</p>
                     </div>
                     <AlertDialog>
                       <AlertDialogTrigger asChild>
                         <Button 
-                          className="w-full h-14 rounded-2xl bg-blue-600 hover:bg-blue-700 shadow-xl shadow-blue-600/20 font-black uppercase tracking-widest text-xs mt-2" 
+                          className="w-full h-14 rounded-2xl bg-blue-600 hover:bg-blue-700 shadow-xl shadow-blue-600/20 font-bold uppercase tracking-wider text-xs mt-2" 
                           disabled={actionLoading}
                         >
                           {actionLoading ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <PackageCheck className="h-4 w-4 mr-2" />}
-                          Execute Pipeline Posting
+                          Confirm Addition to Stock
                         </Button>
                       </AlertDialogTrigger>
                       <AlertDialogContent className="rounded-[2rem] border-2 max-w-md">
                         <AlertDialogHeader>
-                          <AlertDialogTitle className="font-black uppercase tracking-tight">Confirm Pipeline Posting</AlertDialogTitle>
+                          <AlertDialogTitle className="font-bold uppercase tracking-tight">Add to Stock?</AlertDialogTitle>
                           <AlertDialogDescription className="font-medium text-sm">
-                            This action is IRREVERSIBLE. It will instantly increment stock levels across all line items and update product landed costs. Ensure physical goods are received before proceeding.
+                            This will instantly update your stock levels. Please ensure you have received the items physically.
                           </AlertDialogDescription>
                         </AlertDialogHeader>
                         <AlertDialogFooter className="gap-2">
-                          <AlertDialogCancel className="rounded-xl border-2 font-black uppercase text-[10px] tracking-widest">Abort</AlertDialogCancel>
+                          <AlertDialogCancel className="rounded-xl border-2 font-bold uppercase text-[10px] tracking-wider">Cancel</AlertDialogCancel>
                           <AlertDialogAction 
-                            className="rounded-xl bg-blue-600 hover:bg-blue-700 font-black uppercase text-[10px] tracking-widest"
+                            className="rounded-xl bg-blue-600 hover:bg-blue-700 font-bold uppercase text-[10px] tracking-wider"
                             onClick={() => handleAction(viewingGRN, 'posted')}
                           >
-                            Confirm Posting
+                            Add to Stock
                           </AlertDialogAction>
                         </AlertDialogFooter>
                       </AlertDialogContent>
@@ -688,8 +697,8 @@ export default function StockGRNs() {
                       <CheckCircle2 className="h-8 w-8 text-emerald-600" />
                     </div>
                     <div>
-                      <div className="text-emerald-800 font-black text-xl uppercase tracking-tight leading-none">Protocol Complete</div>
-                      <div className="text-[10px] text-emerald-700 font-black uppercase tracking-widest mt-2 opacity-70">Inventory Live · Batches Sequenced · Pricing Synced</div>
+                      <div className="text-emerald-800 font-bold text-xl uppercase tracking-tight leading-none">Stock Added</div>
+                      <div className="text-[10px] text-emerald-700 font-bold uppercase tracking-wider mt-2 opacity-70">Stock entries created and prices updated.</div>
                     </div>
                   </div>
                 )}
@@ -700,8 +709,8 @@ export default function StockGRNs() {
                       <XCircle className="h-8 w-8 text-red-600" />
                     </div>
                     <div>
-                      <div className="text-red-800 font-black text-xl uppercase tracking-tight leading-none">Manifest Voided</div>
-                      <p className="text-[10px] text-red-700 font-black mt-2 uppercase tracking-widest opacity-70">Rejected Status · Null Impact on Inventory</p>
+                      <div className="text-red-800 font-bold text-xl uppercase tracking-tight leading-none">Entry Rejected</div>
+                      <p className="text-[10px] text-red-700 font-bold mt-2 uppercase tracking-wider opacity-70">This entry was rejected and ignored.</p>
                     </div>
                   </div>
                 )}
@@ -709,7 +718,7 @@ export default function StockGRNs() {
             </div>
             
             <div className="p-6 pt-4 bg-background border-t border-border/50 flex gap-3 shrink-0 relative z-20">
-               <Button variant="outline" className="h-14 rounded-2xl w-full font-black uppercase tracking-widest text-xs border-2" onClick={() => setViewingGRN(null)}>Close Terminal</Button>
+               <Button variant="outline" className="h-14 rounded-2xl w-full font-bold uppercase tracking-wider text-xs border-2" onClick={() => setViewingGRN(null)}>Close</Button>
             </div>
           </div>
         </SheetContent>

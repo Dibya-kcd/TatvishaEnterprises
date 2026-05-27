@@ -54,7 +54,7 @@ export const ProductCard = ({ product: p, onClick, onClone, viewMode = 'list' }:
         </div>
 
         <div className="flex-1 min-w-0 mb-3">
-          <h4 className="font-semibold text-slate-900 text-sm leading-tight line-clamp-2 min-h-[2.5rem] group-hover:text-slate-900 transition-colors">
+          <h4 className="font-semibold text-slate-900 text-sm leading-tight min-h-[2.5rem] group-hover:text-slate-900 transition-colors">
             {p.name}
           </h4>
           <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider mt-1 truncate">
@@ -100,7 +100,7 @@ export const ProductCard = ({ product: p, onClick, onClone, viewMode = 'list' }:
           )}
         </div>
         
-        <h4 className="font-semibold text-slate-900 text-sm leading-tight mb-3 line-clamp-1 pr-1 group-hover:text-slate-900 transition-colors">
+        <h4 className="font-semibold text-slate-900 text-sm leading-tight mb-3 pr-1 group-hover:text-slate-900 transition-colors">
           {p.name}
         </h4>
         

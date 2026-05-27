@@ -238,12 +238,19 @@ const LineItemRow = ({
           {/* BOTTOM ROW: [pill buttons] [qty stepper] */}
           <div className="flex items-center justify-between gap-4">
             <div className="flex gap-1">
-              {(['pcs', 'packet', 'case'] as const).map(pt => {
-                const available = validPacks.some(v => v.toLowerCase().startsWith(pt.substring(0, 2)));
-                if (!available && pt !== 'pcs') return null; // Always show pcs or if valid
+              {(['pcs', 'packet', 'case', 'kg', 'ml', 'ltr'] as const).map(pt => {
+                const available = validPacks.some(v => pt === 'pcs' ? (v === 'pcs' || v === 'unit') : v.toLowerCase() === pt);
+                if (!available) return null;
                 
                 const isActive = l.packType === pt;
-                const labels = { pcs: "Pcs", packet: "Pkt", case: "Case" };
+                const labels: Record<string, string> = { 
+                  pcs: getUnitLabel('pcs', l as unknown as Product).substring(0, 5), 
+                  packet: "Pkt", 
+                  case: "Case",
+                  kg: "Kg",
+                  ml: "Ml",
+                  ltr: "Ltr"
+                };
 
                 return (
                   <button
@@ -256,33 +263,41 @@ const LineItemRow = ({
                         : "bg-white text-slate-500 border-slate-200 hover:bg-slate-50"
                     )}
                   >
-                    {labels[pt]}
+                    {labels[pt] || pt}
                   </button>
                 );
               })}
             </div>
 
-            <div className="flex items-center bg-slate-100 p-0.5 rounded-lg border border-slate-200">
-              <button 
-                onClick={() => onUpdateQty(Math.max(1, l.quantity - 1))}
-                className="h-7 w-7 rounded-md bg-white border border-slate-200 flex items-center justify-center text-slate-500 active:scale-95"
-              >
-                <Minus size={12} />
-              </button>
-              <input 
-                type="number"
-                value={l.quantity}
-                onChange={e => onUpdateQty(Number(e.target.value) || 0)}
-                className="w-10 text-center bg-transparent text-[13px] font-bold focus:outline-none tabular-nums"
-              />
-              <button 
-                disabled={!canAddMore}
-                onClick={() => onUpdateQty(l.quantity + 1)}
-                className="h-7 w-7 rounded-md bg-white border border-slate-200 flex items-center justify-center text-slate-500 active:scale-95 disabled:opacity-30"
-              >
-                <Plus size={12} />
-              </button>
-            </div>
+              <div className="flex items-center bg-slate-100 p-0.5 rounded-lg border border-slate-200">
+                <button 
+                  onClick={() => onUpdateQty(Math.max(0, l.quantity - 1))}
+                  className="h-7 w-7 rounded-md bg-white border border-slate-200 flex items-center justify-center text-slate-500 active:scale-95"
+                >
+                  <Minus size={12} />
+                </button>
+                <div className="flex items-center px-1">
+                  <input 
+                    type="number"
+                    value={l.quantity}
+                    onChange={e => onUpdateQty(Number(e.target.value) || 0)}
+                    className="w-8 text-center bg-transparent text-[13px] font-bold focus:outline-none tabular-nums"
+                  />
+                  <span className="text-[10px] font-bold text-slate-400 capitalize whitespace-nowrap pr-1">
+                    {l.packType === 'unit' ? 'Units' : 
+                     l.packType === 'packet' ? 'Pkt' :
+                     l.packType === 'case' ? 'Case' :
+                     l.packType}
+                  </span>
+                </div>
+                <button 
+                  disabled={!canAddMore}
+                  onClick={() => onUpdateQty(l.quantity + 1)}
+                  className="h-7 w-7 rounded-md bg-white border border-slate-200 flex items-center justify-center text-slate-500 active:scale-95 disabled:opacity-30"
+                >
+                  <Plus size={12} />
+                </button>
+              </div>
           </div>
 
           {/* FOOTER: unit hint + SKU */}
@@ -333,11 +348,11 @@ const LineItemRow = ({
         <div className={cn("flex items-start gap-3 min-w-0 px-0.5", l.isRemoved && "grayscale opacity-50")}>
           <div className="flex-1 min-w-0 flex flex-col pt-0">
             <h4 className={cn(
-              "text-[13px] sm:text-[14px] font-bold text-slate-900 leading-tight flex items-center gap-1.5",
+              "text-[13px] sm:text-[15px] font-extrabold text-slate-900 leading-tight flex flex-wrap items-center gap-1.5 mb-1",
               l.isRemoved && "line-through text-slate-400"
             )}>
-              {l.isNew && <Badge className="h-3.5 px-1 text-[7px] bg-[#c2410c] text-white border-none shrink-0 font-black">+NEW</Badge>}
-              <span className="whitespace-normal overflow-visible">{l.name}</span>
+              {l.isNew && <Badge className="h-3.5 px-1 text-[7px] bg-[#c2410c] text-white border-none shrink-0 font-black tracking-tighter opacity-90">+NEW</Badge>}
+              <span className="break-words w-full">{l.name}</span>
             </h4>
             <div className="flex flex-wrap items-center gap-x-3 gap-y-1 mt-1">
               <div className="flex items-center gap-1.5 shrink-0">
@@ -400,17 +415,31 @@ const LineItemRow = ({
                 </div>
               </div>
             ) : (
-              <div className="flex flex-col items-end">
-                <div 
-                  className="flex items-center gap-1.5 px-2 py-1 rounded-lg hover:bg-slate-50 transition-colors border border-transparent hover:border-slate-100 cursor-pointer group/price" 
-                  onClick={() => setIsEditingPrice(true)}
-                >
-                  <Pencil size={10} className="text-slate-300 opacity-40 group-hover/price:text-brand-primary transition-all" />
-                  <p className="text-[14px] font-bold text-slate-900 leading-tight tabular-nums group-hover/price:text-brand-primary transition-all">
-                    {fmtINR(l.unit_price)}
-                  </p>
+              <div className="flex items-center gap-1.5">
+                <div className="flex flex-col items-end">
+                  <div 
+                    className="flex items-center gap-1.5 px-2 py-1 rounded-lg hover:bg-slate-50 transition-colors border border-transparent hover:border-slate-100 cursor-pointer group/price" 
+                    onClick={() => setIsEditingPrice(true)}
+                  >
+                    <Pencil size={10} className="text-slate-300 opacity-40 group-hover/price:text-brand-primary transition-all" />
+                    <p className="text-[14px] font-bold text-slate-900 leading-tight tabular-nums group-hover/price:text-brand-primary transition-all">
+                      {fmtINR(l.unit_price)}
+                    </p>
+                  </div>
+                  {l.isModified && !l.isNew && <span className="text-[8px] font-black text-amber-500 uppercase tracking-widest mt-0.5 bg-amber-50 px-1 rounded shrink-0">Price Modified</span>}
                 </div>
-                {l.isModified && !l.isNew && <span className="text-[8px] font-black text-amber-500 uppercase tracking-widest mt-0.5 bg-amber-50 px-1 rounded">Price Modified</span>}
+                <Button 
+                  size="icon" 
+                  variant="ghost" 
+                  className="h-8 w-8 text-rose-500 hover:text-rose-700 hover:bg-rose-50/50 rounded-lg shrink-0"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onRemove();
+                  }}
+                  title="Remove from Cart"
+                >
+                  <Trash2 size={13} />
+                </Button>
               </div>
             )}
           </div>
@@ -434,56 +463,87 @@ const LineItemRow = ({
         )}
 
         {/* BOTTOM ROW: Pack Pill Selectors | Qty Stepper */}
-        <div className={cn("flex items-center justify-between gap-3 mt-0.5", l.isRemoved && "grayscale pointer-events-none")}>
-          <div className="flex gap-1 overflow-x-auto no-scrollbar py-0.5 max-w-full">
-            {(['pcs', 'packet', 'case'] as const).map(pt => {
-                const available = validPacks.some(v => v.toLowerCase().startsWith(pt.substring(0, 2)));
-                if (!available && pt !== 'pcs') return null; 
+        <div className={cn(
+          "flex flex-col gap-4 mt-2",
+          l.isRemoved && "grayscale pointer-events-none"
+        )}>
+          {/* Pack types - wrap if needed */}
+          <div className="flex flex-wrap gap-1.5 py-0.5">
+            {(['pcs', 'packet', 'case', 'kg', 'ml', 'ltr'] as const).map(pt => {
+                const available = validPacks.some(v => pt === 'pcs' ? (v === 'pcs' || v === 'unit') : v.toLowerCase() === pt);
+                if (!available) return null; 
                 
                 const isActive = l.packType === pt;
-                const labels = { pcs: "Pcs", packet: "Pkt", case: "Case" };
+                const labels: Record<string, string> = { 
+                  pcs: getUnitLabel('pcs', l as unknown as Product).substring(0, 5), 
+                  packet: "Pkt", 
+                  case: "Case",
+                  kg: "Kg",
+                  ml: "Ml",
+                  ltr: "Ltr"
+                };
 
                 return (
                   <button
                     key={pt}
                     onClick={() => onUpdatePackType(pt as NewOrderPackType)}
                     className={cn(
-                      "px-2.5 h-7 rounded-lg text-[10px] font-black uppercase tracking-wider transition-all border shrink-0",
+                      "px-3.5 h-9 rounded-xl text-[10px] font-extrabold uppercase tracking-widest transition-all border shrink-0",
                       isActive 
-                        ? "bg-[#c2410c] text-white border-[#c2410c] shadow-sm" 
-                        : "bg-white text-slate-400 border-slate-100 hover:bg-slate-50"
+                        ? "bg-[#c2410c] text-white border-[#c2410c] shadow-md scale-105" 
+                        : "bg-white text-slate-500 border-slate-200 hover:bg-slate-50 active:scale-95"
                     )}
                   >
-                    {labels[pt]}
+                    {labels[pt] || pt}
                   </button>
                 );
             })}
           </div>
 
-          <div className="flex items-center bg-slate-50 p-0.5 rounded-lg border border-slate-100 scale-90 sm:scale-100 origin-right">
-            <Button 
-              variant="ghost" 
-              size="icon" 
-              className="h-7 w-7 rounded-md bg-white shadow-sm border border-slate-100 text-slate-500 hover:bg-slate-50 active:scale-95 transition-all p-0"
-              onClick={() => onUpdateQty(Math.max(1, l.quantity - 1))}
-            >
-              <Minus className="h-2.5 w-2.5" />
-            </Button>
-            <input 
-              className="w-8 text-center bg-transparent font-black text-[11px] sm:text-[13px] p-0 focus:outline-none tabular-nums text-slate-900" 
-              type="number"
-              value={l.quantity}
-              onChange={e => onUpdateQty(Number(e.target.value) || 0)}
-            />
-            <Button 
-              variant="ghost" 
-              size="icon" 
-              disabled={!canAddMore}
-              className="h-7 w-7 rounded-md bg-white shadow-sm border border-slate-100 text-slate-500 hover:bg-slate-50 active:scale-95 transition-all p-0 disabled:opacity-30"
-              onClick={() => onUpdateQty(l.quantity + 1)}
-            >
-              <Plus className="h-2.5 w-2.5" />
-            </Button>
+          <div className="flex items-center justify-between gap-3 pt-3 border-t border-slate-50">
+            <div className="flex flex-col">
+               <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Quantity</span>
+               <div className="flex items-center bg-slate-100/50 p-1 rounded-xl border border-slate-200 mt-1">
+                 <Button 
+                   variant="ghost" 
+                   size="icon" 
+                   className="h-9 w-9 rounded-lg bg-white shadow-sm border border-slate-200 text-slate-700 hover:bg-slate-50 active:scale-90 transition-all p-0"
+                   onClick={() => onUpdateQty(Math.max(0, l.quantity - 1))}
+                 >
+                   <Minus className="h-3.5 w-3.5 stroke-[3]" />
+                 </Button>
+                 <div className="flex items-center px-1">
+                   <input 
+                     className="w-10 text-center bg-transparent font-black text-sm p-0 focus:outline-none tabular-nums text-slate-900" 
+                     type="number"
+                     value={l.quantity}
+                     onChange={e => onUpdateQty(Number(e.target.value) || 0)}
+                   />
+                   <span className="text-[10px] font-bold text-slate-400 capitalize whitespace-nowrap px-1">
+                     {l.packType === 'unit' ? 'Units' : 
+                      l.packType === 'packet' ? 'Pkt' :
+                      l.packType === 'case' ? 'Case' :
+                      l.packType}
+                   </span>
+                 </div>
+                 <Button 
+                   variant="ghost" 
+                   size="icon" 
+                   disabled={!canAddMore}
+                   className="h-9 w-9 rounded-lg bg-white shadow-sm border border-slate-200 text-slate-700 hover:bg-slate-50 active:scale-90 transition-all p-0 disabled:opacity-30"
+                   onClick={() => onUpdateQty(l.quantity + 1)}
+                 >
+                   <Plus className="h-3.5 w-3.5 stroke-[3]" />
+                 </Button>
+               </div>
+            </div>
+            
+            <div className="text-right">
+               <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Total</span>
+               <p className="text-base font-black text-[#c2410c] leading-none mt-1">
+                 {fmtINR(l.unit_price * l.quantity)}
+               </p>
+            </div>
           </div>
         </div>
 

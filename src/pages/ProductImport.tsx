@@ -592,7 +592,7 @@ export default function ProductImport() {
                 <FileSpreadsheet className="h-8 w-8 text-brand-primary" />
                 Inventory Pilot
               </h1>
-              <p className="text-muted-foreground font-medium">Bulk synchronize your master product data and warehouse inventory.</p>
+              <p className="text-muted-foreground font-medium hidden sm:block">Bulk synchronize your master product data and warehouse inventory.</p>
             </div>
           </div>
           

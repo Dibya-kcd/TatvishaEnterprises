@@ -40,6 +40,8 @@ export function useRecommendedBatches(warehouseId?: string, search?: string, ena
           packets_per_case: x.product_packets_per_case,
           pack_size_value: x.product_pack_size_value,
           pack_size_unit: x.product_pack_size_unit,
+          unit_type: x.product_unit_type,
+          units_per_case: x.product_units_per_case,
         } as unknown as Product
       } as unknown as Batch));
 

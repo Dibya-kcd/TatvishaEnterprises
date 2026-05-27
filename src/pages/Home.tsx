@@ -16,6 +16,8 @@ import {
   X,
   Package,
   Users,
+  Layers,
+  CircleDollarSign,
 } from "lucide-react";
 import { fmtINR, statusColor, statusLabel } from "@/lib/format";
 import { SectionHeader } from "@/components/SectionHeader";
@@ -58,126 +60,99 @@ export default function Home() {
   }, []);
 
   return (
-    <div className="space-y-6 pb-32 md:pb-8">
+    <div className="pb-32 md:pb-8">
       {/* Page Header (Unified) */}
       <PageHeader 
         title="Dashboard" 
-        subtitle="Today's activity at a glance"
-        actionLabel="New order"
-        actionIcon={<Plus size={16} />}
-        onAction={() => navigate("/orders/new")}
+        titleColor="var(--color-brand-primary)"
       />
 
-      <div className="grid grid-cols-1 md:grid-cols-12 gap-6 items-start">
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start mt-2">
         {/* Main Panel (Left) */}
-        <div className="md:col-span-7 lg:col-span-8 space-y-6">
+        <div className="lg:col-span-8 space-y-6">
           {/* Hero Card */}
-          <Card className="relative overflow-hidden border-0 bg-primary text-white shadow-xl shadow-primary/10 rounded-2xl">
+          <Card className="relative overflow-hidden border-0 bg-brand-gradient text-white shadow-brand/40 rounded-3xl group">
             {/* Visual element */}
-            <div className="absolute top-0 right-0 h-32 w-32 bg-white/10 rounded-full blur-3xl -mr-16 -mt-16" />
+            <div className="absolute top-0 right-0 h-48 w-48 bg-white/20 rounded-full blur-3xl -mr-24 -mt-24 group-hover:bg-white/30 transition-all duration-700" />
+            <div className="absolute bottom-0 left-0 h-32 w-32 bg-brand-secondary/20 rounded-full blur-2xl -ml-16 -mb-16" />
             
-            <CardContent className="relative p-6 md:p-8 lg:p-10 z-10 space-y-8 flex flex-col h-full justify-between">
-              <div className="flex flex-col gap-1.5">
-                <div className="text-[11px] font-black uppercase tracking-[0.2em] text-white/50">Today's Revenue</div>
-                <div className="text-4xl sm:text-5xl font-black tracking-tighter tabular-nums">
-                  {stats ? fmtINR(stats.salesToday) : "₹0.00"}
+            <CardContent className="relative p-6 sm:p-8 md:p-10 lg:p-12 z-10 space-y-6 sm:space-y-10 flex flex-col h-full justify-between">
+              <div className="flex flex-col gap-1 sm:gap-2">
+                <div className="text-[10px] sm:text-[11px] font-bold uppercase tracking-wider text-white/70">Today's Collections</div>
+                <div className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-black tracking-tight tabular-nums drop-shadow-sm">
+                  {stats ? fmtINR(stats.todayCollections) : "₹0.00"}
                 </div>
               </div>
               
-              <div className="grid grid-cols-2 gap-4">
-                <div className="bg-white/10 backdrop-blur-sm rounded-2xl p-4 border border-white/10">
-                  <div className="text-[10px] font-black uppercase tracking-wider text-white/40 mb-1">Orders Pending</div>
-                  <div className="text-xl font-black truncate">{stats?.pending ?? 0} <span className="text-[10px] uppercase font-bold text-white/40 ml-1">Today</span></div>
+              <div className="grid grid-cols-2 gap-3 sm:gap-6">
+                <div className="bg-white/10 backdrop-blur-md rounded-2xl p-4 sm:p-5 border border-white/20 shadow-inner min-w-0">
+                  <div className="text-[9px] sm:text-[10px] font-bold uppercase tracking-wider text-white/70 mb-1.5 sm:mb-2">Inventory Value</div>
+                  <div className="text-sm sm:text-lg md:text-xl lg:text-2xl font-bold break-words drop-shadow-sm leading-tight">{stats ? fmtINR(stats.totalInventoryValue) : "₹0"}</div>
                 </div>
-                <div className="bg-white/10 backdrop-blur-sm rounded-2xl p-4 border border-white/10">
-                  <div className="text-[10px] font-black uppercase tracking-wider text-white/40 mb-1">Receivables</div>
-                  <div className="text-xl font-black truncate">{stats ? fmtINR(stats.outstanding) : "₹0"}</div>
+                <div className="bg-white/10 backdrop-blur-md rounded-2xl p-4 sm:p-5 border border-white/20 shadow-inner overflow-hidden min-w-0">
+                  <div className="text-[9px] sm:text-[10px] font-bold uppercase tracking-wider text-white/70 mb-1.5 sm:mb-2">Total Outstanding</div>
+                  <div className="text-sm sm:text-lg md:text-xl lg:text-2xl font-bold break-words drop-shadow-sm leading-tight">{stats ? fmtINR(stats.outstanding) : "₹0"}</div>
                 </div>
               </div>
             </CardContent>
           </Card>
 
-          {/* Stats Grid */}
-          <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-3 gap-4">
+          {/* New Operational Stats Grid */}
+          <div className="grid grid-cols-2 lg:grid-cols-2 gap-4">
             <StatCard 
-              label="Pending" 
-              value={stats?.pending ?? 0} 
-              icon={Clock} 
-              color="warning" 
-              onClick={() => navigate("/orders?status=pending_approval")}
-            />
-            <StatCard 
-              label="Approved" 
-              value={stats?.approved ?? 0} 
-              icon={CheckCircle2} 
-              color="success" 
-              onClick={() => navigate("/orders?status=approved")}
-            />
-            <StatCard 
-              label="Dispatched" 
-              value={stats?.dispatched ?? 0} 
-              icon={ClipboardList} 
-              color="info" 
-              onClick={() => navigate("/orders?status=dispatched")}
-            />
-            <StatCard 
-              label="Low Stock" 
+              label="Stock alerts" 
               value={stats?.lowStock.length ?? 0} 
               icon={Package} 
               color="destructive" 
               onClick={() => navigate("/stock")}
             />
             <StatCard 
-              label="Expiring" 
-              value={stats?.expiring.length ?? 0} 
-              icon={AlertTriangle} 
-              color="warning" 
-              onClick={() => navigate("/stock")}
-            />
-            <StatCard 
-              label="Top Agent" 
-              value={stats?.topSalespeople[0]?.name.split(' ')[0] ?? "—"} 
-              icon={Users} 
-              color="brand" 
+              label="Payments today" 
+              value={`${stats?.todayCollections ? (stats.todayCollections / 1000).toFixed(1) : 0}k`} 
+              icon={CircleDollarSign} 
+              color="success" 
               onClick={() => navigate("/reports")}
             />
           </div>
 
-          {/* Pulse Chart */}
-          <Card className="border-border/60 rounded-2xl bg-card shadow-sm overflow-hidden border border-slate-100">
-            <CardContent className="p-6 md:p-8 lg:p-10">
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
-                <SectionHeader 
-                  title="Revenue trend" 
-                  subtitle="Performance over last 7 days"
-                />
-                {!isLoading && stats && (
-                  <div className="flex items-center gap-3 bg-slate-50 px-5 py-2.5 rounded-2xl border border-slate-100">
-                    <div className="flex flex-col">
-                      <span className="text-[10px] font-black uppercase text-slate-400 tracking-wider">7-Day Total</span>
-                      <span className="text-lg font-black text-primary tabular-nums">{fmtINR(stats.trend.reduce((a,b) => a + b.total, 0))}</span>
+          {/* Warehouse Distribution */}
+          <section className="space-y-4">
+            <SectionHeader 
+              title="Inventory Distribution" 
+              subtitle="Stock valuation by warehouse"
+              actionLabel="View Stock"
+              onAction={() => navigate("/stock")}
+            />
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              {stats?.warehouseSplit.map((w) => (
+                <Card key={w.name} className="border border-slate-100 rounded-2xl bg-card shadow-sm overflow-hidden hover:bg-slate-50/50 transition-colors cursor-pointer" onClick={() => navigate("/stock")}>
+                  <CardContent className="p-4 flex items-center gap-4">
+                    <div className="w-12 h-12 rounded-xl bg-primary/5 flex items-center justify-center text-primary border border-primary/10">
+                      <Layers className="w-5 h-5" />
                     </div>
-                    <Badge className="bg-emerald-50 text-emerald-600 border-none rounded-lg px-2 py-0.5 text-[10px] font-black">
-                      +12.5%
-                    </Badge>
-                  </div>
-                )}
-              </div>
-              <div className="min-h-[160px] flex flex-col justify-center">
-                {isLoading ? (
-                  <div className="space-y-4">
-                    <Skeleton className="h-8 w-1/3 rounded-lg shimmer" />
-                    <Skeleton className="h-40 w-full rounded-2xl shimmer" />
-                  </div>
-                ) : stats && <Sparkline data={stats.trend} />}
-              </div>
-            </CardContent>
-          </Card>
+                    <div className="min-w-0 flex-1">
+                      <div className="text-[9px] font-black uppercase text-slate-400 tracking-widest">{w.code || "WH"}</div>
+                      <div className="text-xs sm:text-sm font-bold text-slate-900 truncate">{w.name}</div>
+                    </div>
+                    <div className="text-right shrink-0">
+                      <div className="text-xs sm:text-sm font-black text-primary">{fmtINR(w.total_value)}</div>
+                      <div className="text-[9px] sm:text-[10px] font-bold text-slate-400">{w.item_count} items</div>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+              {(!stats || stats.warehouseSplit.length === 0) && !isLoading && (
+                 <div className="col-span-full py-8 text-center bg-slate-50/50 rounded-2xl border border-dashed border-slate-200 text-slate-400 text-sm">
+                   No warehouse data available
+                 </div>
+              )}
+            </div>
+          </section>
 
           {/* Authorization Queue */}
           <section className="space-y-4">
             <SectionHeader 
-              title="Authorization Queue" 
+              title="Orders waiting for approval" 
               subtitle={`${stats?.pending ?? 0} orders waiting`}
               actionLabel="View all"
               onAction={() => navigate("/orders?status=pending_approval")}
@@ -275,34 +250,44 @@ export default function Home() {
         </div>
 
         {/* Side Panel (Right) */}
-        <div className="md:col-span-5 lg:col-span-4 space-y-8">
+        <div className="lg:col-span-4 space-y-8">
           <section className="space-y-4">
-            <SectionHeader title="Top shops — this month" subtitle="Monthly performance" onAction={() => navigate("/reports")} actionLabel="View all" />
-            <Card className="border border-slate-100 rounded-2xl bg-card overflow-hidden shadow-sm">
-              <CardContent className="p-6">
-                {isLoading && Array.from({ length: 5 }).map((_, i) => <Skeleton key={i} className="h-12 rounded-xl mb-3 shimmer" />)}
-                <ul className="space-y-1">
-                  {stats?.topShops.map((s, i) => (
-                    <li key={s.shop_id} className="group flex items-center justify-between rounded-xl p-3 transition-all hover:bg-slate-50 cursor-pointer" onClick={() => navigate(`/shops/${s.shop_id}`)}>
-                      <span className="flex min-w-0 items-center gap-3">
-                        <span className={cn(
-                          "grid h-8 w-8 shrink-0 place-items-center rounded-lg text-xs font-black",
-                          i === 0 ? "bg-primary text-white shadow-lg shadow-primary/20" : "bg-slate-100 text-slate-400"
-                        )}>
-                          {i + 1}
-                        </span>
-                        <span className="line-clamp-1 font-bold text-slate-700 text-sm">{s.name}</span>
-                      </span>
-                      <span className="font-black text-primary tabular-nums text-xs ml-2">{fmtINR(s.total)}</span>
-                    </li>
-                  ))}
-                </ul>
-              </CardContent>
-            </Card>
+            <SectionHeader title="Payment Tracking" subtitle="Recent collections status" onAction={() => navigate("/collections")} actionLabel="View all" />
+            <div className="space-y-3">
+              {stats?.recent.filter(o => o.status === 'delivered').slice(0, 3).map((o) => {
+                const payStatus = o.payment_status || "unpaid";
+                let badgeClass = "bg-amber-50 text-amber-600";
+                let badgeText = "Awaiting";
+                
+                if (payStatus === "paid") {
+                  badgeClass = "bg-emerald-50 text-emerald-600";
+                  badgeText = "Paid";
+                } else if (payStatus === "partial") {
+                  badgeClass = "bg-sky-50 text-sky-600";
+                  badgeText = "Partial";
+                }
+
+                return (
+                  <ListCard
+                    key={o.id}
+                    title={o.shop?.name ?? "—"}
+                    subtitle={payStatus === "paid" ? `Collected for #${o.order_number}` : `Payment Due for #${o.order_number}`}
+                    badge={<Badge variant="outline" className={cn("text-[10px] font-black px-2.5 py-0.5 rounded-md border-none uppercase tracking-widest", badgeClass)}>{badgeText}</Badge>}
+                    meta={<div className="text-sm font-black text-slate-900 tracking-tight">{fmtINR(o.total)}</div>}
+                    onClick={() => navigate(`/orders/${o.id}`)}
+                  />
+                );
+              })}
+              {stats?.todayCollections === 0 && !isLoading && (
+                <div className="p-8 text-center bg-slate-50/50 rounded-2xl border border-dashed border-slate-200 text-slate-400 text-sm">
+                  No payment activity today
+                </div>
+              )}
+            </div>
           </section>
 
           <section className="space-y-4">
-            <SectionHeader title="Live Stream" subtitle="Recent activity" actionLabel="View all" onAction={() => navigate("/orders")} />
+            <SectionHeader title="Recent Activity" subtitle="Updates from the field" actionLabel="View all" onAction={() => navigate("/orders")} />
             <div className="space-y-3">
               {stats?.recent.slice(0, 5).map((o) => (
                 <ListCard
@@ -319,62 +304,6 @@ export default function Home() {
         </div>
       </div>
 
-    </div>
-  );
-}
-
-function Sparkline({ data }: { data: { date: string; total: number }[] }) {
-  const { points, dots, max, total } = React.useMemo(() => {
-    const vals = data.map(d => d.total);
-    const max = Math.max(1, ...vals);
-    const w = 400;
-    const h = 100;
-    const step = data.length > 1 ? w / (data.length - 1) : 0;
-    
-    const pts = data.map((d, i) => {
-      const x = i * step;
-      const y = h - (d.total / max) * h;
-      return { x, y };
-    });
-
-    const pointsStr = pts.map(p => `${p.x},${p.y}`).join(" ");
-    const total = vals.reduce((s, d) => s + d, 0);
-    
-    return { points: pointsStr, dots: pts, max, total };
-  }, [data]);
-
-  return (
-    <div className="space-y-4">
-      <div className="flex items-baseline justify-between">
-        <div className="text-2xl font-bold tracking-tight text-primary tabular-nums">
-          {fmtINR(total)}
-        </div>
-        <div className="text-[10px] font-bold text-muted-foreground uppercase opacity-40">
-          7-Day Peak: {fmtINR(max)}
-        </div>
-      </div>
-      
-      <div className="relative h-20 w-full">
-        <svg viewBox="0 0 400 100" className="h-full w-full overflow-visible" preserveAspectRatio="none">
-          <defs>
-            <linearGradient id="sparkGradient" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stopColor="var(--color-primary)" stopOpacity="0.15" />
-              <stop offset="100%" stopColor="var(--color-primary)" stopOpacity="0" />
-            </linearGradient>
-          </defs>
-          <path fill="url(#sparkGradient)" d={`M0,100 ${points} 400,100 Z`} />
-          <polyline fill="none" stroke="var(--color-primary)" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" points={points} />
-          {dots.map((p, i) => (
-            <circle key={i} cx={p.x} cy={p.y} r="3" className="fill-white stroke-primary stroke-[2px]" />
-          ))}
-        </svg>
-      </div>
-
-      <div className="flex justify-between border-t border-border/40 pt-2 text-[10px] font-bold text-muted-foreground/40">
-        {data.map((d) => (
-          <span key={d.date}>{new Date(d.date).toLocaleDateString("en-IN", { weekday: "narrow" })}</span>
-        ))}
-      </div>
     </div>
   );
 }

@@ -79,7 +79,7 @@ export default function MyDay() {
     <ResponsiveContainer className="space-y-5 pb-32">
       <section className="flex flex-col gap-1 px-1">
         <h2 className="text-2xl font-black tracking-tight text-slate-900 leading-none">{greeting}, {userName}</h2>
-        <p className="text-sm font-bold text-slate-400 mt-1 uppercase tracking-widest">Today's Progress</p>
+        <p className="text-sm font-bold text-slate-400 mt-1 uppercase tracking-widest hidden sm:block">Today's Progress</p>
       </section>
 
       {/* Primary KPI Card */}

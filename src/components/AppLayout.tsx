@@ -1,5 +1,6 @@
 import * as React from "react";
 import { NavLink, Outlet, useNavigate, useSearchParams, useLocation } from "react-router-dom";
+import { motion, AnimatePresence } from "motion/react";
 import { 
   Home, Store, Package, ClipboardList, FileText, LogOut, BarChart3, 
   Plus, Users, Boxes, Wallet, Tag, ChevronDown, User, Settings, Settings2, 
@@ -112,6 +113,11 @@ export default function AppLayout() {
   
   const showAdminMenu = isAdmin && !isPinUser && viewParam !== "sales";
 
+  const isSpecialOrderPage = isMobile && (
+    location.pathname.startsWith('/orders/new') || 
+    (location.pathname.startsWith('/orders/') && location.pathname !== '/orders')
+  );
+
   const injectBadges = (items: typeof navItemsSales) => {
     return items.map(item => {
       if (item.to === "/orders") return { ...item, badge: pendingCount };
@@ -141,8 +147,15 @@ export default function AppLayout() {
   React.useEffect(() => {
     if (!isAdmin || isPinUser) return;
 
+    let lastInteraction = Date.now();
+    
     const resetIdleTimer = () => {
-      lastActivityRef.current = Date.now();
+      const now = Date.now();
+      // Throttle to once every 2 seconds
+      if (now - lastInteraction < 2000) return;
+      
+      lastInteraction = now;
+      lastActivityRef.current = now;
       if (idleTimerRef.current) clearTimeout(idleTimerRef.current);
       
       idleTimerRef.current = setTimeout(async () => {
@@ -207,7 +220,7 @@ export default function AppLayout() {
   );
 
   return (
-    <div className="flex min-h-dvh flex-col md:flex-row bg-background antialiased selection:bg-brand-primary/10 overflow-hidden">
+    <div className="flex h-dvh flex-col md:flex-row bg-background antialiased selection:bg-brand-primary/10 overflow-hidden">
       <DesktopSidebar 
         sidebarCollapsed={sidebarCollapsed}
         setSidebarCollapsed={setSidebarCollapsed}
@@ -222,10 +235,10 @@ export default function AppLayout() {
         isSalesTerminal={isSalesTerminal}
       />
 
-      <div className="flex-1 flex flex-col min-w-0 h-dvh overflow-hidden relative">
+      <div className="flex-1 flex flex-col min-w-0 overflow-hidden relative">
         {/* Universal Header */}
-        <header className="sticky top-0 z-30 border-b border-border bg-card/80 backdrop-blur-md safe-pt transition-all duration-300">
-          <div className="mx-auto flex h-16 items-center justify-between px-4 lg:px-8 border-border/50">
+        <header className="sticky top-0 z-30 border-b border-border glass-panel safe-pt transition-all duration-300">
+          <div className="mx-auto flex h-16 items-center justify-between px-4 lg:px-6 border-border/50">
             <div className="flex items-center gap-4">
               <Button 
                 variant="ghost" 
@@ -242,29 +255,36 @@ export default function AppLayout() {
             </div>
             
             <div className="flex items-center gap-3">
-              <div id="header-action-portal" className="hidden md:flex items-center gap-2 mr-2">
-                {/* Pages can teleport primary actions here */}
-              </div>
+              {!isSpecialOrderPage && (
+                <div id="header-action-portal" className="flex items-center gap-2 mr-2" />
+              )}
 
               <NotificationBell />
               
-              <div className="h-8 w-[1px] bg-border mx-1 hidden sm:block" />
+              {!isSpecialOrderPage && (
+                <>
+                  <div className="h-8 w-[1px] bg-border mx-1 hidden sm:block" />
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                       <Avatar className={cn(
+                         "h-9 w-9 border-2 border-white shadow-sm cursor-pointer transition-transform active:scale-90",
+                          loadingData && "animate-pulse"
+                       )}>
+                        <AvatarFallback className="bg-primary/10 text-primary font-black text-xs">
+                          {userInitial}
+                        </AvatarFallback>
+                      </Avatar>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end" className="w-64 mt-2 rounded-2xl border-border shadow-2xl p-2">
+                      {ProfileDropdown}
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                </>
+              )}
 
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                   <Avatar className={cn(
-                     "h-9 w-9 border-2 border-white shadow-sm cursor-pointer transition-transform active:scale-90",
-                      loadingData && "animate-pulse"
-                   )}>
-                    <AvatarFallback className="bg-primary/10 text-primary font-black text-xs">
-                      {userInitial}
-                    </AvatarFallback>
-                  </Avatar>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-64 mt-2 rounded-2xl border-border shadow-2xl p-2">
-                  {ProfileDropdown}
-                </DropdownMenuContent>
-              </DropdownMenu>
+              {isSpecialOrderPage && (
+                <div id="header-action-portal" className="flex items-center gap-2" />
+              )}
             </div>
           </div>
         </header>
@@ -285,26 +305,42 @@ export default function AppLayout() {
         />
 
         <main 
-          className="flex-1 overflow-y-auto overflow-x-hidden pt-4 pb-8 md:pb-6 scrollbar-thin scroll-smooth px-4 md:px-8"
+          className="flex-1 overflow-y-auto overflow-x-hidden pt-4 pb-8 md:pb-6 scroll-smooth touch-pan-y"
           style={{ 
             paddingBottom: isMobile && !location.pathname.includes('/orders/new') ? '160px' : undefined 
           }}
         >
-          <ResponsiveContainer className="animate-in fade-in slide-in-from-bottom-2 duration-500">
-            <Outlet />
-          </ResponsiveContainer>
+          <div className="w-full h-full">
+            <AnimatePresence mode="wait">
+              <motion.div
+                key={location.pathname}
+                initial={{ opacity: 0, y: 10, filter: "blur(10px)" }}
+                animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
+                exit={{ opacity: 0, y: -10, filter: "blur(10px)" }}
+                transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
+                className="w-full h-full"
+              >
+                <Outlet />
+              </motion.div>
+            </AnimatePresence>
+          </div>
         </main>
 
         {isMobile && <MobileNav navItems={navItems} />}
 
-        {/* Global Mobile FAB - Only show on relevant pages */}
-        {isMobile && 
-         ['/', '/shops', '/orders', '/my-day'].includes(location.pathname) && (
+        {/* Global FAB - Show on relevant pages for all viewports, adjusted position */}
+        {['/', '/shops', '/orders', '/my-day'].includes(location.pathname) && (
           <Button
             onClick={() => navigate("/orders/new")}
-            className="fixed bottom-24 right-6 h-14 w-14 rounded-2xl bg-primary text-white shadow-2xl shadow-primary/40 flex items-center justify-center z-40 active:scale-90 transition-transform duration-200 border-none animate-in zoom-in slide-in-from-bottom-4 duration-500 delay-500"
+            className={cn(
+              "fixed right-6 z-40 bg-primary text-white shadow-2xl shadow-primary/40 flex items-center justify-center active:scale-90 transition-all duration-200 border-none animate-in zoom-in slide-in-from-bottom-4 duration-500 delay-500 hover:shadow-primary/50 hover:bg-primary/95",
+              isMobile 
+                ? "bottom-24 h-14 w-14 rounded-2xl" 
+                : "bottom-8 md:bottom-10 md:right-8 lg:right-10 h-14 w-14 md:h-16 md:w-16 rounded-3xl"
+            )}
+            title="Create New Order"
           >
-            <Plus className="h-7 w-7" />
+            <Plus className={isMobile ? "h-7 w-7" : "h-8 w-8"} />
           </Button>
         )}
       </div>
@@ -332,7 +368,7 @@ function ProfileDropdownContent({
       <div className="flex flex-col space-y-1.5 p-3">
         <p className="text-sm font-black tracking-tight leading-none truncate">{currentUser?.full_name || "Profile"}</p>
         <p className="text-[10px] font-bold text-muted-foreground/60 uppercase tracking-widest mt-0.5">
-          {isAdmin ? "Administrator" : "Sales Personnel"}
+          {isAdmin ? "Administrator" : "Sales Team"}
         </p>
         <div className="mt-3 flex flex-wrap gap-2">
           <span className="status-badge bg-primary/10 text-primary text-[10px] py-1 px-3 font-black uppercase tracking-tighter">
@@ -368,7 +404,7 @@ function ProfileDropdownContent({
       <div className="px-1 py-1">
         <DropdownMenuLabel className="px-3 py-1.5 text-[10px] font-black text-muted-foreground/40 uppercase tracking-widest">Account Activities</DropdownMenuLabel>
         <DropdownMenuItem onClick={() => navigate("/my-day")} className="gap-3 py-2.5 px-3 cursor-pointer rounded-xl font-bold">
-          <UserCircle className="h-4 w-4 text-brand-primary/70" /> <span>My daily dashboard</span>
+          <UserCircle className="h-4 w-4 text-brand-primary/70" /> <span>My Day</span>
         </DropdownMenuItem>
         <DropdownMenuItem onClick={() => navigate("/settings")} className="gap-3 py-2.5 px-3 cursor-pointer rounded-xl font-bold">
           <Settings2 className="h-4 w-4 text-brand-primary/70" /> <span>System Settings</span>

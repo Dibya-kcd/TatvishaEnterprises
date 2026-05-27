@@ -37,7 +37,7 @@ describe('format utilities', () => {
 
   describe('formatPackLabel', () => {
     it('converts technical pack types to readable labels', () => {
-      expect(formatPackLabel('pcs')).toBe('PCS');
+      expect(formatPackLabel('pcs')).toBe('Unit');
       expect(formatPackLabel('kg')).toBe('Kg');
       expect(formatPackLabel('case')).toBe('Case');
       expect(formatPackLabel('pkt')).toBe('Packet');

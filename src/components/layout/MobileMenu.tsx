@@ -51,12 +51,15 @@ export function MobileMenu({
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent side="left" className="p-0 w-[300px] border-r-0 flex flex-col h-full bg-background overflow-hidden font-sans">
+        <SheetHeader className="sr-only">
+          <SheetTitle>Mobile Navigation Menu</SheetTitle>
+        </SheetHeader>
         <div className="flex-1 overflow-y-auto p-4 space-y-8 pb-32 scrollbar-none pt-8">
           <div className="flex items-center gap-3 px-3 mb-8">
              <div className="grid h-10 w-10 place-items-center rounded-xl bg-primary text-white shadow-brand">
               <span className="text-base font-black tracking-tighter">TE</span>
             </div>
-            <p className="text-lg font-black tracking-tighter text-slate-900 uppercase italic">Tatvisha</p>
+            <p className="text-lg font-black tracking-tighter text-slate-900 uppercase">Tatvisha</p>
           </div>
 
           <div className="space-y-1.5">

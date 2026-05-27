@@ -9,6 +9,7 @@ import { Database } from "@/integrations/supabase/types";
 import { friendlyError } from "@/lib/errors";
 import { toast } from "sonner";
 import { fmtINR } from "@/lib/format";
+import { cn } from "@/lib/utils";
 
 import { ResponsiveDialog } from "@/components/ui/responsive-ui";
 
@@ -23,6 +24,7 @@ interface RecordPaymentDialogProps {
 
 export default function RecordPaymentDialog({ open, onOpenChange, invoice, shopId, shopName, onSaved }: RecordPaymentDialogProps) {
   const [amount, setAmount] = useState("");
+  const [discount, setDiscount] = useState("");
   const [method, setMethod] = useState("cash");
   const [reference, setReference] = useState("");
   const [paidAt, setPaidAt] = useState(new Date().toISOString().slice(0, 10));
@@ -37,6 +39,7 @@ export default function RecordPaymentDialog({ open, onOpenChange, invoice, shopI
   useEffect(() => {
     if (open) {
       setAmount("");
+      setDiscount("");
       setReference("");
       setMethod("cash");
       setAllocationMode(invoice?.id ? "single" : "fifo");
@@ -49,6 +52,7 @@ export default function RecordPaymentDialog({ open, onOpenChange, invoice, shopI
   // Effect to load shop invoices if shopId is provided
   useEffect(() => {
     if (open && shopId) {
+      setInvoices([]);
       supabase.from("invoices")
         .select(`
           id, 
@@ -69,11 +73,29 @@ export default function RecordPaymentDialog({ open, onOpenChange, invoice, shopI
               (inv.order as { shop_id: string } | null)?.shop_id === shopId
             );
             setInvoices(shopInvoices);
-            if (shopInvoices.length > 0 && !selectedInvoiceId) setSelectedInvoiceId(shopInvoices[0].id);
+            if (shopInvoices.length > 0) {
+              setSelectedInvoiceId(prev => prev || invoice?.id || shopInvoices[0].id);
+            }
           }
         });
     }
-  }, [open, shopId, invoice, selectedInvoiceId]);
+  }, [open, shopId, invoice]);
+
+  // Effect to handle auto-population of amount
+  useEffect(() => {
+    if (!open || invoices.length === 0) return;
+    
+    if (allocationMode === "single") {
+      const targetId = invoice?.id || selectedInvoiceId || invoices[0].id;
+      const target = invoices.find(i => i.id === targetId);
+      if (target) {
+        setAmount((target.total - target.amount_paid).toFixed(2));
+      }
+    } else if (allocationMode === "fifo") {
+      const totalOut = invoices.reduce((sum, inv) => sum + (inv.total - inv.amount_paid), 0);
+      setAmount(totalOut.toFixed(2));
+    }
+  }, [open, allocationMode, selectedInvoiceId, invoices, invoice?.id]);
 
   const handleManualAllocChange = (id: string, val: string) => {
     const newAlloc = { ...manualAllocations, [id]: val };
@@ -85,58 +107,104 @@ export default function RecordPaymentDialog({ open, onOpenChange, invoice, shopI
   };
 
   const save = async () => {
-    const totalAmount = Number(amount);
-    if (!totalAmount || totalAmount <= 0) {
-      console.error('[Context] Invalid amount for payment', { amount });
-      return toast.error("Enter valid amount");
+    const totalCollected = Number(amount) || 0;
+    const totalDiscount = Number(discount) || 0;
+    const totalReduction = totalCollected + totalDiscount;
+
+    if (totalReduction <= 0) {
+      console.error('[Context] Invalid amount for payment', { amount, discount });
+      return toast.error("Enter valid amount or discount");
     }
 
     setBusy(true);
     try {
+      const paymentPayloads = [];
+      const now = new Date(paidAt).toISOString();
+
       if (allocationMode === "fifo" && invoices.length > 0) {
         // FIFO Allocation Logic
-        let remaining = totalAmount;
-        const paymentPayloads = [];
+        let remainingDiscount = totalDiscount;
+        let remainingCollected = totalCollected;
+        
+        // Track virtual outstanding balances to apply discounts then cash
+        const virtualOutstanding = invoices.map(inv => ({
+          id: inv.id,
+          due: inv.total - inv.amount_paid
+        }));
 
-        for (const inv of invoices) {
-          if (remaining <= 0) break;
-          const outstanding = inv.total - inv.amount_paid;
-          if (outstanding <= 0) continue;
+        // 1. Apply Discounts first
+        if (remainingDiscount > 0) {
+          for (const inv of virtualOutstanding) {
+            if (remainingDiscount <= 0) break;
+            if (inv.due <= 0) continue;
 
-          const allocation = Math.min(remaining, outstanding);
-          paymentPayloads.push({
-            invoice_id: inv.id,
-            amount: Number(allocation.toFixed(2)),
-            method: method as Database["public"]["Enums"]["payment_method"],
-            reference: `FIFO: ${reference}`.trim(),
-            paid_at: new Date(paidAt).toISOString()
-          });
-          remaining -= allocation;
+            const allocation = Math.min(remainingDiscount, inv.due);
+            paymentPayloads.push({
+              invoice_id: inv.id,
+              amount: Number(allocation.toFixed(2)),
+              method: "other" as Database["public"]["Enums"]["payment_method"],
+              reference: `Discount: ${reference}`.trim() || "Discount Adjustment",
+              paid_at: now
+            });
+            inv.due -= allocation;
+            remainingDiscount -= allocation;
+          }
+        }
+
+        // 2. Apply Collected Cash/Online
+        if (remainingCollected > 0) {
+          for (const inv of virtualOutstanding) {
+            if (remainingCollected <= 0) break;
+            if (inv.due <= 0) continue;
+
+            const allocation = Math.min(remainingCollected, inv.due);
+            paymentPayloads.push({
+              invoice_id: inv.id,
+              amount: Number(allocation.toFixed(2)),
+              method: method as Database["public"]["Enums"]["payment_method"],
+              reference: `FIFO: ${reference}`.trim() || undefined,
+              paid_at: now
+            });
+            inv.due -= allocation;
+            remainingCollected -= allocation;
+          }
         }
 
         if (paymentPayloads.length === 0) {
           throw new Error("No outstanding invoices found for allocation");
         }
-
-        const { error } = await supabase.from("payments").insert(paymentPayloads);
-        if (error) throw error;
       } else if (allocationMode === "manual") {
-        const paymentPayloads = Object.entries(manualAllocations)
+        // Manual allocation only supports the 'amount' field currently
+        // to avoid complexity of manual discount split
+        Object.entries(manualAllocations)
           .filter(([_, val]) => (parseFloat(val) || 0) > 0)
-          .map(([invId, val]) => ({
-            invoice_id: invId,
-            amount: parseFloat(val),
-            method: method as Database["public"]["Enums"]["payment_method"],
-            reference: `Split: ${reference}`.trim(),
-            paid_at: new Date(paidAt).toISOString()
-          }));
+          .forEach(([invId, val]) => {
+            paymentPayloads.push({
+              invoice_id: invId,
+              amount: parseFloat(val),
+              method: method as Database["public"]["Enums"]["payment_method"],
+              reference: `Split: ${reference}`.trim() || undefined,
+              paid_at: now
+            });
+          });
+
+        if (totalDiscount > 0) {
+          // If a global discount was also entered in manual mode, apply it to the first invoice with balance
+          const target = invoices.find(i => (i.total - i.amount_paid) > 0);
+          if (target) {
+            paymentPayloads.push({
+              invoice_id: target.id,
+              amount: totalDiscount,
+              method: "other" as Database["public"]["Enums"]["payment_method"],
+              reference: `Discount: ${reference}`.trim() || "Discount Adjustment",
+              paid_at: now
+            });
+          }
+        }
 
         if (paymentPayloads.length === 0) {
           throw new Error("No allocations entered");
         }
-
-        const { error } = await supabase.from("payments").insert(paymentPayloads);
-        if (error) throw error;
       } else {
         // Single invoice payment
         const targetInvoiceId = invoice?.id || selectedInvoiceId;
@@ -145,22 +213,36 @@ export default function RecordPaymentDialog({ open, onOpenChange, invoice, shopI
         const selectedInv = invoices.find(i => i.id === targetInvoiceId) || (invoice?.id === targetInvoiceId ? invoice : null);
         if (selectedInv && 'total' in selectedInv) {
           const outstanding = (selectedInv as { total: number; amount_paid: number }).total - (selectedInv as { total: number; amount_paid: number }).amount_paid;
-          if (totalAmount > outstanding + 0.01) {
-             toast.error(`Amount exceeds outstanding balance of ${fmtINR(outstanding)}`);
+          if (totalReduction > outstanding + 0.01) {
+             toast.error(`Total exceeds outstanding balance of ${fmtINR(outstanding)}`);
              setBusy(false);
              return;
           }
         }
 
-        const { error } = await supabase.from("payments").insert({
-          invoice_id: targetInvoiceId,
-          amount: totalAmount,
-          method: method as Database["public"]["Enums"]["payment_method"],
-          reference,
-          paid_at: new Date(paidAt).toISOString()
-        });
-        if (error) throw error;
+        if (totalCollected > 0) {
+          paymentPayloads.push({
+            invoice_id: targetInvoiceId,
+            amount: totalCollected,
+            method: method as Database["public"]["Enums"]["payment_method"],
+            reference,
+            paid_at: now
+          });
+        }
+
+        if (totalDiscount > 0) {
+          paymentPayloads.push({
+            invoice_id: targetInvoiceId,
+            amount: totalDiscount,
+            method: "other" as Database["public"]["Enums"]["payment_method"],
+            reference: `Discount: ${reference}`.trim() || "Adjustment",
+            paid_at: now
+          });
+        }
       }
+
+      const { error } = await supabase.from("payments").insert(paymentPayloads);
+      if (error) throw error;
 
       toast.success("Payment recorded");
       onSaved();
@@ -183,9 +265,9 @@ export default function RecordPaymentDialog({ open, onOpenChange, invoice, shopI
       onOpenChange={onOpenChange}
       title={title}
       description={description}
-      className="p-0 overflow-hidden border-0 shadow-2xl"
+      className="p-0 border-0 shadow-2xl"
     >
-      <div className="p-8 space-y-6">
+      <div className="flex-1 overflow-y-auto p-8 space-y-6 max-h-[75vh] md:max-h-[85vh] scrollbar-thin">
         {!invoice && invoices.length > 0 && (
           <div className="space-y-4">
             <div className="flex bg-slate-100 p-1 rounded-2xl gap-1">
@@ -254,7 +336,7 @@ export default function RecordPaymentDialog({ open, onOpenChange, invoice, shopI
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div className="space-y-2">
-            <Label className="text-[10px] font-black uppercase tracking-widest text-slate-500">Collected Amount (₹)</Label>
+            <Label className="text-[10px] font-black uppercase tracking-widest text-slate-500">Amount Collected (₹)</Label>
             <Input 
               type="number" 
               inputMode="decimal"
@@ -265,7 +347,35 @@ export default function RecordPaymentDialog({ open, onOpenChange, invoice, shopI
             />
           </div>
           <div className="space-y-2">
-            <Label className="text-[10px] font-black uppercase tracking-widest text-slate-500">Fulfillment Date</Label>
+            <Label className="text-[10px] font-black uppercase tracking-widest text-amber-600">Discount Adjustment (₹)</Label>
+            <Input 
+              type="number" 
+              inputMode="decimal"
+              className="h-14 rounded-2xl bg-amber-50/50 border-amber-100 font-black text-2xl focus:ring-amber-500 transition-all px-6 text-amber-700 placeholder:text-amber-200" 
+              value={discount} 
+              onChange={e=>setDiscount(e.target.value)} 
+              placeholder="0.00" 
+            />
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className="space-y-2">
+            <Label className="text-[10px] font-black uppercase tracking-widest text-slate-500">Payment Instrument</Label>
+            <Select value={method} onValueChange={setMethod}>
+              <SelectTrigger className="h-14 rounded-2xl bg-slate-50 border-slate-200 font-black px-6">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent className="rounded-2xl">
+                <SelectItem value="cash" className="py-3 font-bold">Physical Cash</SelectItem>
+                <SelectItem value="upi" className="py-3 font-bold">UPI / Digital</SelectItem>
+                <SelectItem value="cheque" className="py-3 font-bold">Post-dated Cheque</SelectItem>
+                <SelectItem value="bank_transfer" className="py-3 font-bold">Bank Transfer</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="space-y-2">
+            <Label className="text-[10px] font-black uppercase tracking-widest text-slate-500">Collected On</Label>
             <Input 
               type="date" 
               className="h-14 rounded-2xl bg-slate-50 border-slate-200 font-bold px-6" 
@@ -273,21 +383,6 @@ export default function RecordPaymentDialog({ open, onOpenChange, invoice, shopI
               onChange={e=>setPaidAt(e.target.value)} 
             />
           </div>
-        </div>
-
-        <div className="space-y-2">
-          <Label className="text-[10px] font-black uppercase tracking-widest text-slate-500">Payment Instrument</Label>
-          <Select value={method} onValueChange={setMethod}>
-            <SelectTrigger className="h-14 rounded-2xl bg-slate-50 border-slate-200 font-black px-6">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent className="rounded-2xl">
-              <SelectItem value="cash" className="py-3 font-bold">Physical Cash</SelectItem>
-              <SelectItem value="online" className="py-3 font-bold">UPI / Digital</SelectItem>
-              <SelectItem value="cheque" className="py-3 font-bold">Post-dated Cheque</SelectItem>
-              <SelectItem value="bank_transfer" className="py-3 font-bold">Bank Remittance</SelectItem>
-            </SelectContent>
-          </Select>
         </div>
 
         <div className="space-y-2">

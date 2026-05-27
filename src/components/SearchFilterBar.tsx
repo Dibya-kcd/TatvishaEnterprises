@@ -60,13 +60,22 @@ export function SearchFilterBar({
       <div className="flex items-center gap-2 w-full max-w-full px-4 lg:px-0">
         {!hideSearch && (
           <div className="relative flex-1 group lg:max-w-xl">
-            <Search className="absolute left-3.5 top-1/2 h-3.5 w-3.5 md:h-5 md:w-5 -translate-y-1/2 text-slate-400 group-focus-within:text-amber-700 transition-colors pointer-events-none" />
+            <Search className="absolute left-3.5 top-1/2 h-3.5 w-3.5 md:h-5 md:w-5 -translate-y-1/2 text-slate-400 group-focus-within:text-brand-primary transition-colors pointer-events-none" />
             <Input
               placeholder={placeholder}
-              className="pl-9 md:pl-13 h-9 md:h-14 border border-black/[0.04] bg-white md:bg-[#f8f7f4] focus-visible:ring-0 focus-visible:border-black/10 rounded-lg md:rounded-[22px] transition-all text-slate-700 placeholder:text-slate-400 font-bold text-xs md:text-base shadow-sm w-full"
+              className="pl-9 md:pl-13 pr-9 md:pr-14 h-9 md:h-14 border border-white/20 glass-card focus-visible:ring-0 focus-visible:border-brand-primary/30 rounded-lg md:rounded-[22px] transition-all text-slate-700 placeholder:text-slate-400 font-bold text-xs md:text-base shadow-sm w-full"
               value={currentSearch}
               onChange={(e) => onSearchChange(e.target.value)}
             />
+            {currentSearch && (
+              <button 
+                onClick={() => onSearchChange("")}
+                className="absolute right-2 md:right-4 top-1/2 -translate-y-1/2 h-6 w-6 md:h-10 md:w-10 flex items-center justify-center text-slate-300 hover:text-slate-600 transition-colors"
+                title="Clear search"
+              >
+                <X className="h-3 w-3 md:h-5 md:w-5" />
+              </button>
+            )}
           </div>
         )}
 
@@ -93,7 +102,7 @@ export function SearchFilterBar({
                 <SlidersHorizontal className="h-4 w-4 md:h-6 md:w-6 transition-transform group-hover:rotate-12" />
               </button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-64 rounded-2xl border-border shadow-2xl p-2 animate-in slide-in-from-top-2">
+            <DropdownMenuContent align="end" className="w-64 rounded-[2rem] p-3 glass-panel shadow-2xl border border-white/30 animate-in zoom-in-95 duration-300">
               <DropdownMenuLabel className="text-[10px] font-black text-muted-foreground/40 px-3 py-2 uppercase tracking-[0.2em]">Filter & sort</DropdownMenuLabel>
               <DropdownMenuSeparator className="mx-2 opacity-50" />
               {filters.map(f => (
@@ -103,15 +112,15 @@ export function SearchFilterBar({
                      <DropdownMenuItem
                        key={opt}
                        className={cn(
-                        "py-3 px-3 rounded-xl cursor-pointer text-sm font-bold transition-colors",
+                        "py-3 px-3 rounded-2xl cursor-pointer text-sm font-bold transition-all",
                         currentFilters[f.id] === opt 
-                          ? "bg-primary/10 text-primary shadow-sm" 
-                          : "hover:bg-muted"
+                          ? "bg-primary text-white shadow-lg shadow-primary/20 scale-[1.02]" 
+                          : "hover:bg-white/40"
                        )}
                        onClick={() => onFilterChange(f.id, opt)}
                      >
                        <span className="flex-1">{f.optionLabels ? (f.optionLabels[opt] || opt) : opt}</span>
-                       {currentFilters[f.id] === opt && <X className="h-3 w-3 opacity-40" />}
+                       {currentFilters[f.id] === opt && <X className="h-3 w-3 opacity-100" />}
                      </DropdownMenuItem>
                    ))}
                 </div>

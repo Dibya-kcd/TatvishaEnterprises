@@ -49,7 +49,7 @@ export const InlineShopSelector = ({
             </div>
             <div className="flex-1 min-w-0">
               <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Select Outlet</div>
-              <div className="font-bold text-base tracking-tight truncate text-slate-900">
+              <div className="font-bold text-base tracking-tight text-slate-900">
                 {loading ? "Searching..." : (selectedShop?.name ?? "Designate Customer")}
               </div>
               {selectedShop && !loading && (
@@ -115,7 +115,7 @@ export const InlineShopSelector = ({
                   onClick={()=>{ onSelect(s.id); setOpen(false); setShopQ(""); }}
                 >
                   <div className="min-w-0">
-                    <div className="font-bold text-slate-900 text-base tracking-tight group-hover:text-slate-900 transition-colors truncate mb-1">{s.name}</div>
+                    <div className="font-bold text-slate-900 text-base tracking-tight group-hover:text-slate-900 transition-colors mb-1">{s.name}</div>
                     {s.gstin && <div className="text-[11px] font-medium text-slate-400 tracking-tight mb-2">GSTIN: {s.gstin}</div>}
                     <div className="flex items-center gap-2">
                        <Badge variant="outline" className="text-[10px] h-5 rounded-full font-bold bg-slate-50 text-slate-500 border-none px-3 uppercase tracking-wider">{s.shop_type || "Basic"}</Badge>

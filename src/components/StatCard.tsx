@@ -20,20 +20,20 @@ interface StatCardProps {
 export function StatCard({ label, value, icon: Icon, trend, color = "primary", className, onClick }: StatCardProps) {
   const isMobile = useIsMobile();
   const colorMap = {
-    primary: "bg-primary/10 text-primary border-primary/20",
-    success: "bg-status-delivered/10 text-status-delivered border-status-delivered/20",
-    warning: "bg-status-pending/10 text-status-pending border-status-pending/20",
-    destructive: "bg-status-cancelled/10 text-status-cancelled border-status-cancelled/20",
-    info: "bg-status-approved/10 text-status-approved border-status-approved/20",
-    brand: "bg-brand-primary/10 text-brand-primary border-brand-primary/20",
+    primary: "bg-primary/20 text-primary border-primary/30",
+    success: "bg-emerald-500/20 text-emerald-600 border-emerald-500/30",
+    warning: "bg-amber-500/20 text-amber-600 border-amber-500/30",
+    destructive: "bg-rose-500/20 text-rose-600 border-rose-500/30",
+    info: "bg-blue-500/20 text-blue-600 border-blue-500/30",
+    brand: "bg-brand-primary/20 text-brand-primary border-brand-primary/30",
   };
 
   return (
     <Card 
       onClick={onClick}
       className={cn(
-        "border-border/60 shadow-sm overflow-hidden h-full group hover:border-primary/20 transition-all md:rounded-2xl", 
-        onClick && "cursor-pointer hover:shadow-md hover:-translate-y-0.5",
+        "border-border glass-card shadow-sm overflow-hidden h-full group hover:border-primary/40 transition-all md:rounded-3xl", 
+        onClick && "cursor-pointer hover:shadow-xl hover:-translate-y-1 active:translate-y-0 active:scale-[0.98]",
         className
       )}
     >
@@ -43,20 +43,20 @@ export function StatCard({ label, value, icon: Icon, trend, color = "primary", c
         </div>
         
         <div className="space-y-1 w-full min-w-0">
-          <p className="text-[10px] font-black uppercase tracking-[0.15em] text-muted-foreground/50 truncate">{label}</p>
+          <p className="text-[10px] md:text-xs font-bold uppercase tracking-wider text-muted-foreground/60 truncate">{label}</p>
           <div className="flex flex-col md:flex-row md:items-baseline md:gap-2">
-            <h3 className="text-lg md:text-lg lg:text-xl font-black tracking-tight text-foreground tabular-nums leading-none pb-0.5 break-all">
+            <h3 className="text-lg md:text-xl font-bold tracking-tight text-foreground tabular-nums leading-none pb-0.5 break-all">
               {value}
             </h3>
             
             {trend && (
               <div className={cn(
-                "flex items-center justify-center md:justify-start gap-1 text-[10px] font-bold",
+                "flex items-center justify-center md:justify-start gap-1 text-[10px] font-medium",
                 trend.isPositive ? "text-status-delivered" : "text-status-cancelled"
               )}>
-                {trend.isPositive ? <TrendingUp size={10} strokeWidth={3} /> : <TrendingDown size={10} strokeWidth={3} />}
+                {trend.isPositive ? <TrendingUp size={10} strokeWidth={2} /> : <TrendingDown size={10} strokeWidth={2} />}
                 <span>{trend.value}%</span>
-                {trend.label && <span className="text-muted-foreground/40 font-black ml-0.5 uppercase tracking-tighter hidden lg:inline">vs {trend.label}</span>}
+                {trend.label && <span className="text-muted-foreground/40 font-medium ml-0.5 lowercase hidden lg:inline">vs {trend.label}</span>}
               </div>
             )}
           </div>

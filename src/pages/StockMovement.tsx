@@ -4,7 +4,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Loader2, Search, ArrowUpRight, ArrowDownRight, ArrowRightLeft, MoreVertical } from "lucide-react";
+import { Loader2, Search, ArrowUpRight, ArrowDownRight, ArrowRightLeft, MoreVertical, X } from "lucide-react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { fmtDate } from "@/lib/format";
 import { Badge } from "@/components/ui/badge";
@@ -12,6 +12,8 @@ import { cn } from "@/lib/utils";
 import { StockBreakdownDisplay } from "@/components/StockBreakdownDisplay";
 import { Product } from "@/types";
 import { PageHeader } from "@/components/PageHeader";
+import { StockTabs } from "@/components/stock/StockTabs";
+import { ResponsiveContainer } from "@/components/ui/responsive-ui";
 import { useInfiniteQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useVirtualizer } from "@tanstack/react-virtual";
@@ -129,75 +131,89 @@ export default function StockMovement() {
   };
 
   return (
-    <div className="w-full h-screen flex flex-col space-y-5 pb-10 animate-fade-in overflow-hidden">
-      <div className="px-4 pt-4 shrink-0">
-        <PageHeader 
-          title="Stock activity ledger"
-          subtitle="Complete Transactional Audit Trail"
-          onBack={() => navigate("/stock")}
-        />
+    <div className="pb-32 md:pb-24">
+      <PageHeader 
+        title="Stock History"
+        subtitle="Complete Transactional Audit Trail"
+        onBack={() => navigate("/stock")}
+      />
 
-        <div className="flex flex-col md:flex-row gap-4 mb-4">
-          <div className="relative flex-1">
-            <Search className="absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground opacity-50" />
-            <Input 
-              className="pl-11 h-11 rounded-xl border bg-muted/5 focus:bg-background transition-all" 
-              placeholder="Search by Product, SKU or Batch..." 
+      <ResponsiveContainer className="space-y-4 md:space-y-6 mt-1 md:mt-4">
+        <StockTabs />
+
+        {/* Search & Filter pills — consistent */}
+        <div className="flex flex-col md:flex-row items-center gap-2 md:gap-3">
+          <div className="flex-1 w-full relative group">
+            <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground/50 group-focus-within:text-primary transition-colors" />
+            <Input
+              placeholder="Search by Product, SKU or Batch..."
+              className="pl-10 pr-10 h-11 md:h-12 rounded-xl border border-border bg-card font-medium text-sm shadow-sm focus:border-primary/30 focus:ring-0 transition-all w-full"
               value={search}
               onChange={e => setSearch(e.target.value)}
             />
-          </div>
-          <div className="flex flex-wrap gap-2 pb-2 -mx-1 px-1 flex-1">
-            {['all', 'purchase', 'dispatch', 'adjustment', 'reversal'].map(t => (
-              <Button 
-                key={t}
-                variant={typeFilter === t ? "default" : "outline"}
-                size="sm"
-                onClick={() => setTypeFilter(t)}
-                className={cn(
-                  "rounded-xl px-5 font-bold text-[11px] uppercase tracking-widest h-10 transition-all border-2",
-                  typeFilter === t 
-                    ? "bg-primary text-white border-primary shadow-md shadow-primary/20 scale-[1.02]" 
-                    : "bg-card border-border/50 text-muted-foreground hover:border-primary/30"
-                )}
+            {search && (
+              <button
+                onClick={() => setSearch("")}
+                className="absolute right-3 top-1/2 -translate-y-1/2 h-6 w-6 flex items-center justify-center text-muted-foreground/40 hover:text-muted-foreground transition-colors"
+                title="Clear search"
               >
-                {t}
-              </Button>
-            ))}
+                <X className="h-4 w-4" />
+              </button>
+            )}
           </div>
-          <Button
-            variant="outline"
-            size="sm"
-            className="rounded-xl px-5 h-10 border-2 font-black text-[11px] uppercase tracking-widest gap-2 bg-white"
-            onClick={() => {
-              if (allEntries.length === 0) return;
-              const exportData = allEntries.map(e => ({
-                Date: new Date(e.created_at).toLocaleDateString(),
-                Time: new Date(e.created_at).toLocaleTimeString(),
-                Product: e.product_name,
-                SKU: e.product_sku,
-                Type: e.entry_type.toUpperCase(),
-                Quantity: e.qty_transacted,
-                Shop: e.shop_name || '-',
-                Supplier: e.supplier_name || '-',
-                Batch: e.batch_number || '-',
-                User: e.created_by_name || 'SYSTEM',
-                Notes: e.notes || ''
-              }));
-              downloadCSV(exportData, `Stock_Movement_${typeFilter}_${new Date().toISOString().split('T')[0]}`);
-            }}
-          >
-            <Download className="h-3.5 w-3.5" />
-            Export CSV
-          </Button>
-        </div>
-      </div>
 
-      <div className="flex-1 min-h-0 px-4">
-        <Card className="h-full rounded-2xl border border-border/60 shadow-sm overflow-hidden flex flex-col">
+          <div className="flex flex-wrap items-center gap-2 w-full md:w-auto shrink-0">
+            {/* Filter pills — consistent pill row */}
+            <div className="flex flex-wrap gap-2 overflow-x-auto pb-0.5 no-scrollbar snap-x">
+              {['all', 'purchase', 'dispatch', 'adjustment', 'reversal'].map(t => (
+                <button
+                  key={t}
+                  onClick={() => setTypeFilter(t)}
+                  className={cn(
+                    "h-9 px-4 rounded-xl font-bold text-[11px] uppercase tracking-widest transition-all whitespace-nowrap snap-start border",
+                    typeFilter === t
+                      ? "bg-primary text-white border-primary shadow-sm"
+                      : "bg-card border-border text-muted-foreground hover:border-primary/30 hover:text-primary"
+                  )}
+                >
+                  {t}
+                </button>
+              ))}
+            </div>
+
+            <Button
+              variant="outline"
+              size="sm"
+              className="rounded-xl px-4 h-9 border border-border font-bold text-[11px] uppercase tracking-widest gap-2 bg-card text-muted-foreground hover:text-foreground hover:border-primary/30 shrink-0"
+              onClick={() => {
+                if (allEntries.length === 0) return;
+                const exportData = allEntries.map(e => ({
+                  Date: new Date(e.created_at).toLocaleDateString(),
+                  Time: new Date(e.created_at).toLocaleTimeString(),
+                  Product: e.product_name,
+                  SKU: e.product_sku,
+                  Type: e.entry_type.toUpperCase(),
+                  Quantity: e.qty_transacted,
+                  Shop: e.shop_name || '-',
+                  Supplier: e.supplier_name || '-',
+                  Batch: e.batch_number || '-',
+                  User: e.created_by_name || 'SYSTEM',
+                  Notes: e.notes || ''
+                }));
+                downloadCSV(exportData, `Stock_Movement_${typeFilter}_${new Date().toISOString().split('T')[0]}`);
+              }}
+            >
+              <Download className="h-4 w-4" />
+              <span>Export CSV</span>
+            </Button>
+          </div>
+        </div>
+
+        {/* Content Card container with virtualizer */}
+        <Card className="rounded-2xl border border-border/60 shadow-sm overflow-hidden flex flex-col">
           <div 
             ref={parentRef}
-            className="flex-1 overflow-auto bg-white scroll-smooth"
+            className="h-[600px] overflow-auto bg-white scroll-smooth"
           >
             <div
               style={{
@@ -231,6 +247,10 @@ export default function StockMovement() {
 
                 if (!entry) return null;
 
+                const qTrans = entry.qty_transacted;
+                const isPositive = qTrans > 0;
+                const displayType = entry.entry_type; // e.g. dispatch, purchase, reversal, adjustment
+
                 return (
                   <div
                     key={entry.id}
@@ -242,60 +262,75 @@ export default function StockMovement() {
                       height: `${virtualItem.size}px`,
                       transform: `translateY(${virtualItem.start}px)`,
                     }}
-                    className="border-b border-border/30 hover:bg-slate-50/50 transition-all p-4 flex flex-col md:flex-row gap-4"
+                    className="border-b border-border/20 hover:bg-muted/10 transition-colors"
                   >
-                    {/* Mobile optimized view inside virtualized row */}
-                    <div className="flex-1 flex flex-col md:flex-row gap-4">
-                      <div className="w-[120px] shrink-0">
-                        <p className="text-[10px] font-black uppercase text-foreground">{fmtDate(entry.created_at)}</p>
-                        <p className="text-[9px] font-mono text-muted-foreground">{new Date(entry.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</p>
-                      </div>
-
-                      <div className="flex-1 min-w-0">
-                        <div className="font-black text-sm uppercase tracking-tight text-foreground truncate">{entry.product_name}</div>
-                        <div className="text-[10px] font-black font-mono text-muted-foreground uppercase opacity-60 tracking-tighter">{entry.product_sku}</div>
-                        
-                        <div className="flex flex-wrap items-center gap-2 mt-1">
-                          {entry.shop_name && (
-                            <div className="flex items-center gap-1.5">
-                              <Badge variant="secondary" className="h-4 px-1.5 text-[8px] font-black bg-primary/10 text-primary border-none">SHOP</Badge>
-                              <span className="text-[10px] font-bold text-slate-600 truncate max-w-[150px]">{entry.shop_name}</span>
-                            </div>
+                    {/* Desktop View */}
+                    <div className="hidden md:flex p-4 items-center justify-between gap-4 h-full">
+                      <div className="flex-1 min-w-0 flex items-center gap-3">
+                        <div className="h-10 w-10 rounded-xl bg-muted/40 flex items-center justify-center shrink-0">
+                          {isPositive ? (
+                            <ArrowDownRight className="h-5 w-5 text-emerald-600" />
+                          ) : (
+                            <ArrowUpRight className="h-5 w-5 text-destructive" />
                           )}
-                          {entry.batch_number && (
-                            <Badge variant="outline" className="font-mono text-[9px] h-4 px-1.5 uppercase tracking-tighter">{entry.batch_number}</Badge>
-                          )}
-                          {getEntryBadge(entry.entry_type)}
+                        </div>
+                        <div className="flex flex-col min-w-0">
+                          <span className="font-bold text-sm text-foreground leading-tight truncate">{entry.product_name}</span>
+                          <span className="text-[10px] font-black uppercase tracking-wider text-muted-foreground/60 mt-0.5">{entry.product_sku}</span>
                         </div>
                       </div>
 
-                      <div className="w-[120px] text-right shrink-0">
-                        <div className={cn(
-                          "font-black text-lg tabular-nums leading-none",
-                          entry.qty_transacted > 0 ? "text-emerald-600" : "text-destructive"
+                      <div className="flex items-center gap-2 flex-1">
+                        {entry.shop_name && (
+                          <div className="flex items-center gap-1.5">
+                            <Badge variant="secondary" className="h-4 px-1.5 text-[8px] font-black bg-primary/10 text-primary border-none">SHOP</Badge>
+                            <span className="text-[10px] font-bold text-slate-600 truncate max-w-[120px]">{entry.shop_name}</span>
+                          </div>
+                        )}
+                        {entry.batch_number && (
+                          <Badge variant="outline" className="font-mono text-[9px] h-4 px-1.5 uppercase tracking-tighter">{entry.batch_number}</Badge>
+                        )}
+                        {getEntryBadge(displayType)}
+                      </div>
+
+                      <div className="text-right shrink-0">
+                        <span className={cn(
+                          "font-black text-base tabular-nums",
+                          isPositive ? "text-emerald-600" : "text-destructive"
                         )}>
-                          {entry.qty_transacted > 0 ? '+' : ''}{entry.qty_transacted}
-                        </div>
-                        <StockBreakdownDisplay 
-                          stockBaseUnits={entry.qty_transacted} 
-                          product={{
-                            id: entry.product_id,
-                            name: entry.product_name,
-                            units_per_packet: entry.units_per_packet,
-                            packets_per_case: entry.packets_per_case
-                          } as unknown as Product} 
-                          variant="compact" 
-                          className="text-[9px] opacity-60 font-bold"
-                        />
+                          {isPositive ? '+' : ''}{qTrans}
+                        </span>
+                        <span className="block text-[10px] text-muted-foreground/60 mt-0.5">{fmtDate(entry.created_at)}</span>
                       </div>
+                    </div>
 
-                      <div className="hidden md:block w-[180px] text-right shrink-0">
-                        <p className="text-[10px] font-bold text-foreground">
-                          {entry.created_by_name || "SYSTEM"}
-                        </p>
-                        <p className="text-[10px] text-muted-foreground italic truncate">
-                          {entry.notes || "—"}
-                        </p>
+                    {/* Mobile optimized view — consistent structure */}
+                    <div className="md:hidden p-4 h-full flex flex-col justify-center">
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="flex items-start gap-3 flex-1 min-w-0">
+                          <div className="h-10 w-10 rounded-xl bg-muted/40 flex items-center justify-center shrink-0">
+                            {isPositive ? (
+                              <ArrowDownRight className="h-4.5 w-4.5 text-emerald-600" />
+                            ) : (
+                              <ArrowUpRight className="h-4.5 w-4.5 text-destructive" />
+                            )}
+                          </div>
+                          <div className="flex flex-col min-w-0">
+                            <span className="font-bold text-sm text-foreground leading-tight truncate">{entry.product_name}</span>
+                            <span className="text-[10px] font-black uppercase tracking-wider text-muted-foreground/60 mt-0.5">{entry.product_sku}</span>
+                          </div>
+                        </div>
+                        <div className="text-right shrink-0">
+                          <span className={cn(
+                            "font-black text-base tabular-nums",
+                            isPositive ? "text-emerald-600" : "text-destructive"
+                          )}>
+                            {isPositive ? '+' : ''}{qTrans}
+                          </span>
+                          <span className="block text-[10px] text-muted-foreground/60 mt-0.5">
+                            {new Date(entry.created_at).toLocaleDateString()}
+                          </span>
+                        </div>
                       </div>
                     </div>
                   </div>
@@ -303,16 +338,30 @@ export default function StockMovement() {
               })}
             </div>
 
+            {/* Empty state — consistent across all tabs */}
             {allEntries.length === 0 && !isLoading && (
-              <div className="py-20 text-center text-muted-foreground italic font-medium opacity-50 uppercase tracking-widest text-xs">No records found</div>
+              <div className="py-16 px-6 text-center flex flex-col items-center gap-3">
+                <div className="h-12 w-12 rounded-2xl bg-muted/40 flex items-center justify-center">
+                  <ArrowRightLeft className="h-5 w-5 text-muted-foreground/40" />
+                </div>
+                <div>
+                  <p className="text-xs font-black text-muted-foreground/40 uppercase tracking-widest">No records found</p>
+                  <p className="text-sm font-medium text-muted-foreground/60 mt-1">Try adjusting your search or filters</p>
+                </div>
+              </div>
             )}
-            
+
+            {/* Loading state — consistent skeleton */}
             {isLoading && allEntries.length === 0 && (
-              <div className="py-20 text-center"><Loader2 className="h-8 w-8 animate-spin mx-auto text-primary opacity-20" /></div>
+              <div className="space-y-3 p-4">
+                {Array.from({ length: 5 }).map((_, i) => (
+                  <div key={i} className="h-16 w-full animate-pulse bg-muted/40 rounded-xl" />
+                ))}
+              </div>
             )}
           </div>
         </Card>
-      </div>
+      </ResponsiveContainer>
     </div>
   );
 }

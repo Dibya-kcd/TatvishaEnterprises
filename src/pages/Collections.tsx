@@ -4,6 +4,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
+import { cn } from "@/lib/utils";
 import { 
   Search, 
   IndianRupee as IndianRupeeIcon, 
@@ -11,7 +12,9 @@ import {
   History, 
   ChevronRight,
   TrendingDown,
-  Wallet
+  Wallet,
+  X,
+  FileText
 } from "lucide-react";
 import { fmtINR } from "@/lib/format";
 import { toast } from "sonner";
@@ -51,7 +54,7 @@ export default function Collections() {
     <ResponsiveContainer className="space-y-5 pb-32">
       <PageHeader
         title="Collections"
-        subtitle="Outstanding payments from your shops"
+        titleColor="var(--color-brand-primary)"
         onBack={() => navigate("/")}
       />
 
@@ -96,10 +99,19 @@ export default function Collections() {
             <Search className="absolute left-5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground group-focus-within:text-brand-primary transition-colors" />
             <Input 
               placeholder="Search shops..." 
-              className="pl-12 h-11 border border-border/60 bg-muted/20 font-medium focus:bg-background transition-all rounded-xl focus:border-brand-primary shadow-sm"
+              className="pl-12 pr-10 h-11 border border-border/60 bg-muted/20 font-medium focus:bg-background transition-all rounded-xl focus:border-brand-primary shadow-sm"
               value={search}
               onChange={e => setSearch(e.target.value)}
             />
+            {search && (
+              <button 
+                onClick={() => setSearch("")}
+                className="absolute right-3 top-1/2 -translate-y-1/2 h-6 w-6 flex items-center justify-center text-slate-300 hover:text-slate-600 transition-colors"
+                title="Clear search"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            )}
           </div>
 
           {!loading && outstandings.length === 0 ? (
@@ -139,11 +151,12 @@ export default function Collections() {
                   ),
                 },
                 {
-                  header: "Pending invoices",
+                  header: "Pending",
                   render: (s) => (
-                    <Badge variant="outline" className="py-0.5 px-2.5 text-[10px] font-black rounded-full border-none bg-primary/5 text-primary tracking-widest">
-                      {s.invoice_count} invoices
-                    </Badge>
+                    <div className="flex items-center gap-1.5 text-[10px] font-black text-primary bg-primary/5 px-3 py-1.5 rounded-xl uppercase tracking-wider w-fit">
+                      <FileText className="h-3.5 w-3.5" />
+                      <span>{s.invoice_count}</span>
+                    </div>
                   ),
                   hideOnMobile: true,
                 },
@@ -180,36 +193,32 @@ export default function Collections() {
                     setPayOpen(true);
                   }}
                 >
-                  <CardContent className="p-4 flex items-center justify-between gap-4">
-                    <div className="flex items-center gap-4 min-w-0 flex-1">
-                      <div className="h-10 w-10 rounded-xl bg-primary/5 border border-primary/10 flex items-center justify-center shrink-0 text-primary transition-all shadow-inner">
-                        <Store className="h-5 w-5" />
-                      </div>
-                      <div className="min-w-0">
-                        <h3 className="font-bold text-base text-foreground tracking-tight group-hover:text-primary transition-colors leading-tight">
-                          {shop.shop_name}
-                        </h3>
-                        <div className="flex items-center gap-1.5 mt-0.5">
-                          <span className="text-xs font-bold text-primary bg-primary/5 px-2 py-0.5 rounded-lg">
-                            {shop.invoice_count} invoices
-                          </span>
+                  <CardContent className="p-4 flex items-center justify-between gap-3 text-left overflow-hidden">
+                    <div className="flex flex-col min-w-0 flex-1">
+                      <h3 className="font-black text-xs text-slate-900 tracking-tight group-hover:text-primary transition-colors leading-tight">
+                        {shop.shop_name}
+                      </h3>
+                      <div className="flex items-center gap-1.5 mt-2">
+                        <div className="flex items-center gap-1 text-[9px] font-black text-primary bg-primary/5 px-2 py-0.5 rounded-lg uppercase tracking-wider">
+                          <FileText className="h-3 w-3" />
+                          <span>{shop.invoice_count}</span>
                         </div>
                       </div>
                     </div>
-                    <div className="flex flex-col items-end gap-2 shrink-0">
+                    <div className="flex items-center gap-3 shrink-0">
                       <div className="text-right">
-                        <div className="font-bold text-lg text-foreground tabular-nums tracking-tight group-hover:text-primary transition-colors leading-none">{fmtINR(shop.total_outstanding)}</div>
+                        <div className="font-black text-base text-slate-900 tabular-nums tracking-tight group-hover:text-primary transition-colors leading-none">{fmtINR(shop.total_outstanding)}</div>
                       </div>
                       <Button 
                         size="sm" 
-                        className="h-9 rounded-xl text-xs bg-slate-900 hover:bg-primary transition-all px-4 font-bold shadow-md shadow-primary/20"
+                        className="h-8 w-8 rounded-full bg-slate-900 hover:bg-primary p-0 flex items-center justify-center shadow-lg"
                         onClick={(e) => {
                           e.stopPropagation();
                           setSelectedShop({ id: shop.shop_id, name: shop.shop_name });
                           setPayOpen(true);
                         }}
                       >
-                        Collect
+                        <ChevronRight className="h-4 w-4 text-white" />
                       </Button>
                     </div>
                   </CardContent>
@@ -242,9 +251,10 @@ export default function Collections() {
             {
               header: "Reference",
               render: (p) => (
-                <Badge variant="outline" className="py-0.5 px-3 text-[10px] font-black rounded-full border-none bg-slate-100 text-slate-500 tracking-widest">
-                  INV-{p.invoice?.invoice_number?.slice(-4) || "—"}
-                </Badge>
+                <div className="flex items-center gap-1.5 text-[10px] font-black text-slate-500 bg-slate-100 px-3 py-1.5 rounded-xl uppercase tracking-wider w-fit">
+                   <FileText className="h-3.5 w-3.5 opacity-50" />
+                   <span>INV-{p.invoice?.invoice_number?.slice(-4) || "—"}</span>
+                </div>
               ),
               hideOnMobile: true,
             },
@@ -268,8 +278,19 @@ export default function Collections() {
               },
               {
                 header: "Amount Collected",
-                className: "text-right font-black tabular-nums text-emerald-600 text-lg",
-                render: (p) => `+${fmtINR(p.amount)}`,
+                className: "text-right font-black tabular-nums text-lg",
+                render: (p) => (
+                  <div className="flex flex-col items-end">
+                    <div className={cn(
+                      p.method === 'other' ? "text-amber-600" : "text-emerald-600"
+                    )}>
+                      {p.method === 'other' ? "-" : "+"}{fmtINR(p.amount)}
+                    </div>
+                    <div className="text-[9px] font-black uppercase tracking-widest text-slate-400">
+                      {p.method === 'other' ? "Discount" : p.method}
+                    </div>
+                  </div>
+                ),
               }
             ]}
             renderMobileCard={(payment) => (
@@ -277,24 +298,29 @@ export default function Collections() {
                 key={payment.id} 
                 className="group relative overflow-hidden border border-border/60 rounded-2xl bg-card shadow-sm transition-all"
               >
-                <CardContent className="p-4 flex items-center justify-between gap-4">
-                  <div className="flex items-center gap-4 min-w-0 flex-1">
-                    <div className="h-10 w-10 rounded-xl bg-primary/5 border border-primary/10 flex items-center justify-center shrink-0 text-primary transition-all shadow-inner">
-                      <Store className="h-5 w-5" />
-                    </div>
-                    <div className="min-w-0">
-                      <h3 className="font-bold text-base text-foreground tracking-tight leading-tight truncate transition-colors group-hover:text-primary">
-                        {payment.invoice?.shop?.name || (payment.invoice?.order as { shop: { name: string } }| null)?.shop?.name || "System Settlement"}
-                      </h3>
-                      <div className="flex items-center gap-1.5 mt-0.5">
-                        <span className="text-[10px] font-bold text-primary bg-primary/5 px-2 py-0.5 rounded-lg uppercase tracking-widest">INV-{payment.invoice?.invoice_number?.slice(-4) || "—"}</span>
-                        <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{new Date(payment.paid_at).toLocaleDateString()}</span>
+                <CardContent className="p-4 flex items-center justify-between gap-3 text-left overflow-hidden">
+                  <div className="flex flex-col min-w-0 flex-1">
+                    <h3 className="font-black text-xs text-slate-900 tracking-tight leading-tight transition-colors group-hover:text-primary">
+                      {payment.invoice?.shop?.name || (payment.invoice?.order as { shop: { name: string } }| null)?.shop?.name || "System Settlement"}
+                    </h3>
+                    <div className="flex flex-col gap-1.5 mt-2">
+                      <div className="flex items-center gap-1 text-[9px] font-black text-primary bg-primary/5 px-2 py-0.5 rounded-lg uppercase tracking-wider w-fit">
+                         <FileText className="h-3 w-3" />
+                         <span>INV-{payment.invoice?.invoice_number?.slice(-4) || "—"}</span>
                       </div>
+                      <div className="text-[9px] font-bold text-slate-400 uppercase tracking-widest px-0.5">{new Date(payment.paid_at).toLocaleDateString()}</div>
                     </div>
                   </div>
                   <div className="flex flex-col items-end shrink-0">
-                    <div className="font-bold text-lg text-emerald-600 tabular-nums tracking-tight group-hover:text-primary transition-colors leading-none">+{fmtINR(payment.amount)}</div>
-                    <div className="text-[10px] font-black uppercase tracking-widest text-slate-400 mt-1">{payment.method}</div>
+                    <div className={cn(
+                      "font-black text-base tabular-nums tracking-tight group-hover:text-primary transition-colors leading-none",
+                      payment.method === 'other' ? "text-amber-600" : "text-emerald-600"
+                    )}>
+                      {payment.method === 'other' ? "-" : "+"}{fmtINR(payment.amount)}
+                    </div>
+                    <div className="text-[9px] font-black uppercase tracking-widest text-slate-400 mt-1">
+                      {payment.method === 'other' ? "Discount" : payment.method}
+                    </div>
                   </div>
                 </CardContent>
               </Card>

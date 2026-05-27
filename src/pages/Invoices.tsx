@@ -232,7 +232,7 @@ export default function Invoices() {
     <ResponsiveContainer className="space-y-6 pb-24 px-4 sm:px-0">
       <PageHeader 
         title="Invoices" 
-        subtitle={!isLoading ? `${allInvoices.length} entries · ${fmtCompactINR(totalBalance)} outstanding` : "Syncing invoices..."}
+        titleColor="var(--color-brand-primary)"
         onBack={() => navigate("/")}
         action={selectedIds.size > 0 && (
           <Button 
@@ -313,7 +313,7 @@ export default function Invoices() {
                   <FileText size={18} />
                 </div>
                 <div className="flex flex-col min-w-0">
-                  <span className="font-black text-slate-900 truncate max-w-[180px] sm:max-w-[240px] leading-tight">{inv.shop_name || "Unlinked Client (System)"}</span>
+                  <span className="font-black text-slate-900 leading-tight">{inv.shop_name || "Unknown Client"}</span>
                   <div className="flex items-center gap-2 mt-0.5">
                     <span className="text-[10px] font-bold text-slate-400 font-mono tracking-tight">{inv.invoice_number}</span>
                     {inv.order_number && (
@@ -402,10 +402,10 @@ export default function Invoices() {
                       className="text-rose-600 font-bold focus:bg-rose-50 focus:text-rose-700 cursor-pointer rounded-xl py-3"
                       onClick={async (e) => {
                         e.stopPropagation();
-                        if (!window.confirm("CRITICAL: Void this financial record?")) return;
+                        if (!window.confirm("CRITICAL: Cancel this invoice?")) return;
                         
                         voidMutation.mutate(inv.id, {
-                          onSuccess: () => toast.success("Ledger entry voided"),
+                          onSuccess: () => toast.success("Invoice cancelled"),
                           onError: (error) => toast.error(friendlyError(error))
                         });
                       }}
@@ -437,7 +437,7 @@ export default function Invoices() {
             </div>
             <div className="flex-1 min-w-0">
               <ListCard 
-                title={inv.shop_name || "Unlinked Client"}
+                title={inv.shop_name || "Unknown Client"}
                 className={cn(selectedIds.has(inv.id) && "border-brand-primary bg-brand-primary/5")}
                 subtitle={`${inv.invoice_number} ${inv.order_number ? `· #${inv.order_number}` : ''}`}
                 badge={

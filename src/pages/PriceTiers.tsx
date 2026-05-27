@@ -10,7 +10,7 @@ import { Slider } from "@/components/ui/slider";
 import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
 import { friendlyError } from "@/lib/errors";
-import { Search, Loader2, Save, ChevronDown, ChevronUp, Info, AlertCircle, Package, TrendingUp, Copy, History, User, RefreshCw, Calculator, Percent, ArrowRight } from "lucide-react";
+import { Search, Loader2, Save, ChevronDown, ChevronUp, Info, AlertCircle, Package, TrendingUp, Copy, History, User, RefreshCw, Calculator, Percent, ArrowRight, X } from "lucide-react";
 import { fmtINR } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import { derivePackaging } from "@/lib/packaging";
@@ -374,6 +374,28 @@ export default function PriceTiers() {
             {showPreview ? "Collapse Analysis" : "Launch Impact Simulation"}
             <ChevronDown className={cn("ml-3 h-4 w-4 transition-transform duration-500", showPreview && "rotate-180")} />
           </Button>
+        </div>
+
+        {/* Search Bar for Products */}
+        <div className="max-w-xl mx-auto w-full px-4">
+          <div className="relative group">
+            <Search className="absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground group-focus-within:text-primary transition-colors opacity-50" />
+            <Input 
+              className="pl-11 pr-10 h-12 rounded-2xl border-2 bg-white/50 focus:bg-white backdrop-blur-sm transition-all focus:ring-primary/10 shadow-sm"
+              placeholder="Search products to override margins..."
+              value={search}
+              onChange={e => setSearch(e.target.value)}
+            />
+            {search && (
+              <button 
+                onClick={() => setSearch("")}
+                className="absolute right-3 top-1/2 -translate-y-1/2 h-8 w-8 flex items-center justify-center text-slate-300 hover:text-slate-600 transition-colors"
+                title="Clear search"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            )}
+          </div>
         </div>
 
         {/* Live Preview Section */}

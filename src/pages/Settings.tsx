@@ -128,49 +128,53 @@ export default function Settings() {
   );
 
   return (
-    <ResponsiveContainer className="pb-32 px-4 sm:px-6 lg:px-0 overflow-x-hidden">
+    <ResponsiveContainer className="pb-32 px-4 sm:px-6 lg:px-0">
       <PageHeader 
         title="Settings" 
         subtitle="App configuration" 
+        titleColor="var(--color-brand-primary)"
       />
       
-      <div className="flex flex-col md:flex-row gap-4 sm:gap-8 mt-4 md:mt-8">
+      <div className="flex flex-col md:flex-row gap-4 mt-4 md:mt-6">
         {/* Navigation Sidebar */}
-        <aside className="md:w-64 lg:w-80 shrink-0 px-0">
-          <div className="md:sticky md:top-24 space-y-2">
-            <div className="flex flex-row md:flex-col gap-2 overflow-x-auto pb-4 md:pb-0 no-scrollbar -mx-2 px-3 md:mx-0 md:px-0 snap-x">
+        <aside className="md:w-64 lg:w-72 shrink-0 px-0">
+          <div className="md:sticky md:top-24 space-y-4">
+            <div className="flex flex-row md:flex-col overflow-x-auto md:overflow-y-visible overscroll-x-contain gap-2 md:gap-1.5 pb-2 md:pb-0 -mx-1 px-1 md:mx-0 md:px-0 md:glass-panel md:rounded-3xl md:border md:border-white/30 md:shadow-xl md:p-3 no-scrollbar touch-pan-x">
               {navItems.map((item) => (
                 <button
-                  key={item.id}
-                  onClick={() => setActiveTab(item.id)}
-                  className={cn(
-                    "flex flex-col md:flex-row items-center md:items-center gap-1.5 md:gap-4 px-4 md:px-8 py-3 md:py-5 rounded-2xl md:rounded-[2rem] transition-all relative group shrink-0 md:shrink min-w-[84px] md:min-w-0 border-2 snap-center",
-                    activeTab === item.id 
-                      ? "bg-primary text-white border-primary shadow-xl shadow-primary/20 scale-[1.02]" 
-                      : "bg-white text-slate-500 border-slate-100/50 hover:bg-slate-50"
-                  )}
+                   key={item.id}
+                   onClick={() => setActiveTab(item.id)}
+                   className={cn(
+                     "flex items-center gap-3 px-4 py-3 cursor-pointer rounded-2xl transition-all duration-300 w-full text-left shrink-0 md:shrink snap-center active:scale-95",
+                     activeTab === item.id 
+                       ? "bg-primary text-white shadow-lg shadow-primary/20 scale-[1.02]" 
+                       : "bg-white/40 md:bg-transparent text-slate-500 hover:bg-white/60"
+                   )}
                 >
-                  <item.icon className={cn("h-4 w-4 md:h-5 md:w-5", activeTab === item.id ? "text-white" : "text-slate-400 group-hover:text-primary transition-colors")} />
+                  <div className={cn(
+                    "h-10 w-10 rounded-xl flex items-center justify-center shrink-0 transition-all",
+                    activeTab === item.id ? "bg-white/20 text-white" : "glass-card text-slate-400 group-hover:bg-white/40"
+                  )}>
+                    <item.icon className="h-5 w-5" />
+                  </div>
                   <div className="text-left hidden md:block">
-                    <p className="text-sm font-black tracking-tight leading-none">{item.label}</p>
-                    <p className={cn("text-[10px] mt-1.5 font-bold opacity-60 leading-none uppercase tracking-wider", activeTab === item.id ? "text-white" : "text-slate-400")}>{item.desc}</p>
+                    <p className={cn("text-sm font-black transition-colors", activeTab === item.id ? "text-white" : "text-slate-800")}>{item.label}</p>
+                    <p className={cn("text-[10px] font-black uppercase tracking-widest mt-0.5 opacity-60", activeTab === item.id ? "text-white" : "text-slate-400")}>{item.desc}</p>
                   </div>
                   <span className="text-[9px] font-black uppercase tracking-widest md:hidden mt-0.5">{item.label}</span>
                 </button>
               ))}
               
-              <div className="hidden md:block pt-6 px-4">
-                <DropdownMenuSeparator className="bg-slate-100 mb-6" />
-                <Button 
-                  variant="ghost" 
-                  className="w-full justify-start gap-4 px-6 py-4 rounded-xl text-rose-500 hover:text-rose-600 hover:bg-rose-50 font-black h-auto group transition-all"
+              <div className="hidden md:block pt-2">
+                <button
                   onClick={() => signOut()}
+                  className="w-full flex items-center gap-3 px-4 py-3 rounded-2xl text-rose-500 hover:bg-rose-500/10 transition-all group border-t border-white/10"
                 >
-                  <LogOut className="h-6 w-6 group-hover:-translate-x-1 transition-transform" />
-                  <div className="text-left">
-                    <p className="text-sm leading-none">Logout</p>
+                  <div className="h-10 w-10 rounded-xl glass-card flex items-center justify-center shrink-0 group-hover:bg-rose-500/20 group-hover:text-rose-600 transition-colors">
+                    <LogOut className="h-5 w-5 group-hover:-translate-x-1 transition-transform" />
                   </div>
-                </Button>
+                  <p className="text-sm font-black">Logout</p>
+                </button>
               </div>
             </div>
           </div>
@@ -185,52 +189,52 @@ export default function Settings() {
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -10 }}
               transition={{ duration: 0.3 }}
-              className="space-y-6 px-1 sm:px-0"
+              className="space-y-5 sm:space-y-6"
             >
               {activeTab === "hardware" && (
                 <PrinterSettings />
               )}
 
               {activeTab === "account" && (
-                <Card className="border-0 shadow-2xl shadow-slate-200/50 rounded-2xl sm:rounded-[3rem] overflow-hidden bg-white">
-                  <div className="bg-[#0F172A] p-5 sm:p-12 text-white relative min-h-[140px] sm:h-64 flex items-center">
+                <Card className="border border-slate-100 shadow-sm rounded-2xl overflow-hidden bg-white">
+                  <div className="bg-[#0F172A] p-5 sm:p-8 py-8 text-white relative flex items-center">
                     <div className="absolute top-0 right-0 h-full w-full bg-[radial-gradient(circle_at_70%_20%,rgba(168,82,43,0.15),transparent_60%)] pointer-events-none" />
-                    <div className="flex flex-col sm:flex-row items-center gap-4 sm:gap-10 relative z-10 w-full px-2 sm:px-0">
-                      <div className="h-16 w-16 sm:h-32 sm:w-32 rounded-xl sm:rounded-[3.5rem] bg-white/5 flex items-center justify-center border border-white/10 shadow-2xl backdrop-blur-2xl shrink-0">
-                        <UserCircle className="h-8 w-8 sm:h-16 sm:w-16 text-white/40" />
+                    <div className="flex flex-col sm:flex-row items-center gap-4 sm:gap-10 relative z-10 w-full px-5 sm:px-6">
+                      <div className="h-14 w-14 rounded-2xl bg-white/5 flex items-center justify-center border border-white/10 shrink-0">
+                        <UserCircle className="h-8 w-8 text-white/40" />
                       </div>
                       <div className="space-y-1 text-center sm:text-left flex-1 min-w-0">
-                        <h3 className="text-xl sm:text-5xl font-black tracking-tighter leading-tight italic truncate px-1">{user?.email?.split('@')[0]}</h3>
-                        <div className="flex flex-wrap items-center justify-center sm:justify-start gap-2 sm:gap-4 mt-1 sm:mt-4">
+                        <h3 className="text-xl sm:text-2xl font-bold truncate px-1">{user?.email?.split('@')[0]}</h3>
+                        <div className="flex flex-wrap items-center justify-center sm:justify-start gap-2 mt-1 sm:mt-2">
                            <Badge className="bg-primary/20 text-white border-primary/20 font-black text-[8px] sm:text-[10px] px-2 sm:px-4 py-0.5 sm:py-1 h-5 sm:h-7 rounded-lg tracking-widest uppercase">{isAdmin ? "Superuser" : "Standard Agent"}</Badge>
                            <span className="text-white/20 text-[8px] sm:text-[10px] font-black uppercase tracking-[0.2em] sm:tracking-[0.3em] whitespace-nowrap">Access Verifier 1.2</span>
                         </div>
                       </div>
                     </div>
                   </div>
-                  <CardContent className="p-5 sm:p-12 space-y-6 sm:space-y-12">
-                    <div className="grid md:grid-cols-2 gap-4 sm:gap-10">
-                      <div className="space-y-1.5 sm:space-y-3">
+                  <CardContent className="p-5 sm:p-6 space-y-4">
+                    <div className="grid md:grid-cols-2 gap-4 sm:gap-6">
+                      <div className="space-y-1.5 sm:space-y-2">
                         <Label className="text-[8px] sm:text-[10px] uppercase font-black text-slate-300 tracking-[0.2em] ml-1">Identity Endpoint</Label>
-                        <div className="h-11 sm:h-16 flex items-center px-4 sm:px-6 rounded-xl sm:rounded-2xl bg-slate-50 border border-slate-100 text-xs sm:text-sm font-black text-slate-800 shadow-inner font-mono break-all leading-tight">
+                        <div className="h-11 flex items-center px-4 rounded-xl bg-slate-50 border border-slate-100 text-xs sm:text-sm font-black text-slate-800 font-mono break-all leading-tight">
                           {user?.email}
                         </div>
                       </div>
-                      <div className="space-y-1.5 sm:space-y-3">
+                      <div className="space-y-1.5 sm:space-y-2">
                         <Label className="text-[8px] sm:text-[10px] uppercase font-black text-slate-300 tracking-[0.2em] ml-1">Assigned Node</Label>
-                        <div className="h-11 sm:h-16 flex items-center px-4 sm:px-6 rounded-xl sm:rounded-2xl bg-slate-50 border border-slate-100 text-xs sm:text-sm font-black text-slate-800 shadow-inner uppercase tracking-[0.1em]">
+                        <div className="h-11 flex items-center px-4 rounded-xl bg-slate-50 border border-slate-100 text-xs sm:text-sm font-black text-slate-800 font-mono break-all leading-tight">
                           NE-DIST-CENTER #03
                         </div>
                       </div>
                     </div>
  
-                    <div className="p-4 sm:p-10 bg-amber-50 rounded-xl sm:rounded-2xl border border-amber-100 flex flex-col sm:flex-row gap-3 sm:gap-8 items-start sm:items-center">
-                      <div className="h-10 w-10 sm:h-16 sm:w-16 rounded-xl sm:rounded-[1.5rem] bg-amber-500/10 flex items-center justify-center shrink-0 border border-amber-500/10">
-                        <ShieldAlert className="h-5 w-5 sm:h-8 sm:w-8 text-amber-600" />
+                    <div className="p-4 bg-amber-50 rounded-xl border border-amber-100 flex flex-col sm:flex-row gap-3 items-start sm:items-center">
+                      <div className="h-9 w-9 rounded-lg bg-amber-500/10 flex items-center justify-center shrink-0 border border-amber-500/10">
+                        <ShieldAlert className="h-5 w-5 text-amber-600" />
                       </div>
                       <div className="space-y-0.5 sm:space-y-1">
-                        <p className="text-sm sm:text-lg font-black text-amber-900 tracking-tight leading-none">Credential Isolation</p>
-                        <p className="text-[10px] sm:text-sm font-bold text-amber-600/70 leading-relaxed italic max-w-lg">
+                        <p className="text-sm sm:text-base font-black text-amber-900 tracking-tight leading-none">Credential Isolation</p>
+                        <p className="text-[10px] sm:text-xs font-bold text-amber-600/70 leading-relaxed italic max-w-lg">
                           Security policies and cluster permissions are enforced by the cloud supervisor. Local adjustments are prohibited.
                         </p>
                       </div>
@@ -241,32 +245,32 @@ export default function Settings() {
 
               {activeTab === "business" && (
                 isAdmin ? (
-                  <Card className="border-0 shadow-2xl shadow-slate-200/50 rounded-2xl sm:rounded-[3rem] overflow-hidden bg-white">
-                  <CardHeader className="p-5 sm:p-12 pb-2 sm:pb-6">
-                    <CardTitle className="text-xl sm:text-4xl font-black tracking-tighter">Business Matrix</CardTitle>
-                    <CardDescription className="text-slate-400 font-bold text-[10px] sm:text-sm tracking-tight mt-1 uppercase tracking-widest leading-tight">Global Pricing & Arithmetic Constants</CardDescription>
+                  <Card className="border border-slate-100 shadow-sm rounded-2xl overflow-hidden bg-white">
+                  <CardHeader className="p-5 pb-3">
+                    <CardTitle className="text-lg font-bold tracking-tighter">Business Matrix</CardTitle>
+                    <CardDescription className="text-slate-400 text-xs mt-0.5">Global Pricing & Arithmetic Constants</CardDescription>
                   </CardHeader>
-                  <CardContent className="p-5 sm:p-12 pt-2 sm:pt-6 space-y-6 sm:space-y-12">
-                    <div className="space-y-6 sm:space-y-12">
+                  <CardContent className="p-5 pt-3 space-y-6">
+                    <div className="space-y-5 sm:space-y-6">
                       {/* Tier Based Margins */}
-                      <div className="space-y-4 sm:space-y-8">
+                      <div className="space-y-3">
                         <div className="flex items-center justify-between gap-2 px-2">
-                           <Label className="text-[9px] sm:text-[11px] uppercase font-black text-slate-400 tracking-[0.1em] sm:tracking-[0.2em] flex items-center gap-2 sm:gap-3 shrink-0">
+                           <Label className="text-[9px] sm:text-[10px] uppercase font-black text-slate-400 tracking-[0.1em] sm:tracking-[0.2em] flex items-center gap-2 sm:gap-3 shrink-0">
                               <Store size={14} className="text-primary shrink-0" /> <span className="truncate">Tier Matrix (%)</span>
                            </Label>
                            <Badge variant="outline" className="border-slate-100 text-slate-300 font-black text-[8px] sm:text-[9px] uppercase tracking-tighter h-5 sm:h-6 px-2 sm:px-3">Sync Active</Badge>
                         </div>
-                        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-2 sm:gap-6">
+                        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-2 sm:gap-4">
                            {(['premium', 'gold', 'silver', 'bronze', 'basic'] as const).map(tier => (
-                             <div key={tier} className="space-y-1.5 sm:space-y-3 p-3 sm:p-6 rounded-xl sm:rounded-2xl bg-slate-50 transition-all hover:bg-white hover:shadow-xl hover:shadow-slate-100 border border-transparent hover:border-slate-100 group">
-                               <Label className="text-[8px] sm:text-[10px] uppercase font-black text-slate-400 tracking-widest block text-center mb-0.5 sm:mb-1 group-hover:text-primary transition-colors">{tier}</Label>
+                             <div key={tier} className="space-y-1.5 p-3 rounded-xl bg-slate-50 transition-all hover:bg-white hover:shadow-xl hover:shadow-slate-100 border border-transparent hover:border-slate-100 group">
+                               <Label className="text-[8px] sm:text-[9px] uppercase font-black text-slate-400 tracking-widest block text-center mb-0.5 sm:mb-1 group-hover:text-primary transition-colors">{tier}</Label>
                                <div className="relative">
                                  <Input 
                                    type="number" 
                                    step="0.1"
                                    value={localMargins[tier]} 
                                    onChange={(e) => handleMarginChange(tier, e.target.value)}
-                                   className="h-10 sm:h-14 rounded-lg sm:rounded-2xl bg-white border-transparent focus:border-primary font-black text-center text-sm sm:text-lg text-slate-900 shadow-sm px-1 transition-all" 
+                                   className="h-10 rounded-lg bg-white border-transparent focus:border-primary font-black text-center text-sm text-slate-900 shadow-sm px-1 transition-all" 
                                  />
                                </div>
                              </div>
@@ -275,46 +279,46 @@ export default function Settings() {
                       </div>
   
                       {/* Category Based Margins */}
-                      <div className="space-y-4 sm:space-y-8">
-                         <div className="flex items-center justify-between px-2 border-t pt-6 sm:pt-12 border-slate-100">
-                            <Label className="text-[9px] sm:text-[11px] uppercase font-black text-slate-400 tracking-[0.1em] sm:tracking-[0.2em] flex items-center gap-2 sm:gap-3 shrink-0">
+                      <div className="space-y-3">
+                         <div className="flex items-center justify-between px-2 border-t pt-5 sm:pt-6 border-slate-100">
+                            <Label className="text-[9px] sm:text-[10px] uppercase font-black text-slate-400 tracking-[0.1em] sm:tracking-[0.2em] flex items-center gap-2 sm:gap-3 shrink-0">
                                <Sliders size={14} className="text-amber-500 shrink-0" /> <span className="truncate">Category Surcharge (%)</span>
                             </Label>
                          </div>
-                         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-6">
+                         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
                              {Object.entries(localCats).map(([cat, val]) => (
-                              <div key={cat} className="space-y-1.5 sm:space-y-3 p-4 sm:p-6 rounded-xl sm:rounded-2xl bg-[#FFFBF0] border border-amber-100/30 group transition-all hover:bg-white hover:shadow-xl hover:shadow-amber-100/20">
-                                 <Label className="text-[8px] sm:text-[10px] uppercase font-bold text-amber-800/60 tracking-wider block leading-tight truncate">{cat}</Label>
+                              <div key={cat} className="space-y-1.5 p-3.5 rounded-xl bg-[#FFFBF0] border border-amber-100/30 group transition-all hover:bg-white hover:shadow-xl hover:shadow-amber-100/20">
+                                 <Label className="text-[8px] sm:text-[9px] uppercase font-bold text-amber-800/60 tracking-wider block leading-tight truncate">{cat}</Label>
                                  <div className="relative">
                                     <Input 
                                       type="number" 
                                       value={val} 
                                       onChange={(e) => setLocalCats({...localCats, [cat]: Number(e.target.value)})}
-                                      className="h-9 sm:h-12 rounded-lg bg-white border-transparent focus:border-amber-500 font-black text-sm sm:text-lg text-slate-900 shadow-sm px-2" 
+                                      className="h-11 rounded-xl bg-white border-transparent focus:border-amber-500 font-black text-sm text-slate-900 shadow-sm px-2" 
                                     />
-                                    <span className="absolute right-2 sm:right-4 top-1/2 -translate-y-1/2 text-[8px] sm:text-[10px] font-black text-amber-200">%</span>
+                                    <span className="absolute right-2 top-1/2 -translate-y-1/2 text-[8px] sm:text-[10px] font-black text-amber-200">%</span>
                                  </div>
                               </div>
                             ))}
                          </div>
                       </div>
-
+ 
                       {/* Variance Threshold */}
-                      <div className="space-y-4 sm:space-y-8">
-                         <div className="flex items-center justify-between px-2 border-t pt-6 sm:pt-12 border-slate-100">
-                            <Label className="text-[9px] sm:text-[11px] uppercase font-black text-slate-400 tracking-[0.1em] sm:tracking-[0.2em] flex items-center gap-2 sm:gap-3 shrink-0">
+                      <div className="space-y-3">
+                         <div className="flex items-center justify-between px-2 border-t pt-5 sm:pt-6 border-slate-100">
+                            <Label className="text-[9px] sm:text-[10px] uppercase font-black text-slate-400 tracking-[0.1em] sm:tracking-[0.2em] flex items-center gap-2 sm:gap-3 shrink-0">
                                <ShieldAlert size={14} className="text-rose-500 shrink-0" /> <span className="truncate">Variance Alert Threshold (%)</span>
                             </Label>
                          </div>
                          <div className="max-w-xs">
-                           <div className="space-y-1.5 sm:space-y-3 p-4 sm:p-6 rounded-xl sm:rounded-2xl bg-rose-50 border border-rose-100/30 group transition-all hover:bg-white hover:shadow-xl hover:shadow-rose-100/20">
-                              <Label className="text-[8px] sm:text-[10px] uppercase font-bold text-rose-800/60 tracking-wider block leading-tight">Price Deviation Limit</Label>
+                           <div className="space-y-1.5 p-3.5 rounded-xl bg-rose-50 border border-rose-100/30 group transition-all hover:bg-white hover:shadow-xl hover:shadow-rose-100/20">
+                              <Label className="text-[8px] sm:text-[9px] uppercase font-bold text-rose-800/60 tracking-wider block leading-tight">Price Deviation Limit</Label>
                               <div className="relative">
                                  <Input 
                                    type="number" 
                                    value={localVariance} 
                                    onChange={(e) => setLocalVariance(Number(e.target.value))}
-                                   className="h-9 sm:h-12 rounded-lg bg-white border-transparent focus:border-rose-500 font-black text-sm sm:text-lg text-slate-900 shadow-sm px-2" 
+                                   className="h-11 rounded-xl bg-white border-transparent focus:border-rose-500 font-black text-sm text-slate-900 shadow-sm px-2" 
                                  />
                                  <span className="absolute right-4 top-1/2 -translate-y-1/2 text-[10px] font-black text-rose-200">%</span>
                               </div>
@@ -323,7 +327,7 @@ export default function Settings() {
                       </div>
                     </div>
   
-                    <div className="flex justify-center sm:justify-end pt-6 sm:pt-12 border-t border-slate-100 mt-6 sm:mt-12">
+                    <div className="flex justify-center sm:justify-end pt-5 sm:pt-6 border-t border-slate-100 mt-5 sm:mt-6">
                       <Button 
                         onClick={async () => {
                           await updateMargins(localMargins);
@@ -332,7 +336,7 @@ export default function Settings() {
                           toast.success("Matrix Synchronized");
                         }}
                         disabled={marginsLoading}
-                        className="w-full sm:w-64 bg-slate-900 hover:bg-black text-white shadow-xl sm:shadow-2xl shadow-slate-300 rounded-xl sm:rounded-[1.5rem] h-12 sm:h-16 px-4 sm:px-16 font-black uppercase text-[10px] sm:text-sm tracking-[0.1em] sm:tracking-[0.2em] transition-all transform active:scale-95"
+                        className="w-full sm:w-auto bg-slate-900 hover:bg-black rounded-xl h-11 px-8 text-sm tracking-wide transition-all transform active:scale-95"
                       >
                         {marginsLoading ? <RefreshCw className="mr-2 h-4 w-4 animate-spin" /> : <Settings2 className="mr-2 h-4 w-4 font-black" />}
                         {marginsLoading ? "Processing" : "Apply Matrix"}
@@ -345,79 +349,79 @@ export default function Settings() {
 
               {activeTab === "preferences" && (
                 isAdmin ? (
-                  <Card className="border-0 shadow-2xl shadow-slate-200/50 rounded-2xl sm:rounded-[3rem] overflow-hidden bg-white">
-                  <CardHeader className="p-5 sm:p-12 pb-2 sm:pb-6">
-                    <CardTitle className="text-xl sm:text-4xl font-black tracking-tighter italic leading-none">Operational Bias</CardTitle>
-                    <CardDescription className="text-slate-400 font-bold text-[10px] sm:text-sm tracking-tight mt-1">Logic behavior & observation frequency.</CardDescription>
+                  <Card className="border border-slate-100 shadow-sm rounded-2xl overflow-hidden bg-white">
+                  <CardHeader className="p-5 pb-3">
+                    <CardTitle className="text-lg font-bold tracking-tighter">Preferences</CardTitle>
+                    <CardDescription className="text-slate-400 text-xs mt-0.5">Display and reporting defaults.</CardDescription>
                   </CardHeader>
-                  <CardContent className="p-5 sm:p-12 pt-2 sm:pt-6 space-y-8 sm:space-y-16">
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-12">
-                      <div className="space-y-2 sm:space-y-4">
-                        <Label className="text-[9px] sm:text-[11px] uppercase font-black text-slate-300 tracking-[0.15em] sm:tracking-[0.2em] mb-1 sm:mb-2 flex items-center gap-2">
-                           System Reporting Cycle
+                  <CardContent className="p-5 pt-3 space-y-5">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-8">
+                      <div className="space-y-1.5">
+                        <Label className="text-[9px] sm:text-[10px] uppercase font-black text-slate-300 tracking-[0.15em] mb-1 flex items-center gap-2">
+                           Reporting period
                         </Label>
                         <Select 
                           value={settings.reportingPeriod} 
                           onValueChange={(v) => handleUpdate('reportingPeriod', v as "daily" | "weekly" | "monthly")}
                         >
-                          <SelectTrigger className="h-12 sm:h-16 rounded-xl sm:rounded-[1.5rem] bg-slate-50 border-slate-100 font-black text-xs sm:text-sm text-slate-800 px-4 sm:px-6 focus:ring-primary shadow-sm transition-all focus:bg-white hover:bg-slate-100/50">
+                          <SelectTrigger className="h-11 rounded-xl bg-slate-50 border-slate-100 font-black text-sm text-slate-800 px-4 focus:ring-primary shadow-sm transition-all focus:bg-white hover:bg-slate-100/50">
                             <SelectValue placeholder="Period" />
                           </SelectTrigger>
                           <SelectContent className="rounded-2xl border-slate-200 shadow-2xl p-2 bg-white">
-                            <SelectItem value="daily" className="text-[10px] sm:text-sm font-black py-3 sm:py-4 rounded-xl">DAILY PULSE</SelectItem>
-                            <SelectItem value="weekly" className="text-[10px] sm:text-sm font-black py-3 sm:py-4 rounded-xl">WEEKLY FLOW</SelectItem>
-                            <SelectItem value="monthly" className="text-[10px] sm:text-sm font-black py-3 sm:py-4 rounded-xl">MONTHLY MASS</SelectItem>
+                            <SelectItem value="daily" className="text-[10px] sm:text-sm font-black py-2 rounded-xl">Daily</SelectItem>
+                            <SelectItem value="weekly" className="text-[10px] sm:text-sm font-black py-2 rounded-xl">Weekly</SelectItem>
+                            <SelectItem value="monthly" className="text-[10px] sm:text-sm font-black py-2 rounded-xl">Monthly</SelectItem>
                           </SelectContent>
                         </Select>
                       </div>
  
-                      <div className="space-y-2 sm:space-y-4">
-                        <Label className="text-[9px] sm:text-[11px] uppercase font-black text-slate-300 tracking-[0.15em] sm:tracking-[0.2em] mb-1 sm:mb-2">
-                          Arithmetic Bias (Tax)
+                      <div className="space-y-1.5">
+                        <Label className="text-[9px] sm:text-[10px] uppercase font-black text-slate-300 tracking-[0.15em] mb-1">
+                          GST rounding
                         </Label>
                         <Select 
                           value={settings.gstRounding} 
                           onValueChange={(v) => handleUpdate('gstRounding', v as "round" | "ceil" | "floor")}
                         >
-                          <SelectTrigger className="h-12 sm:h-16 rounded-xl sm:rounded-[1.5rem] bg-slate-50 border-slate-100 font-black text-xs sm:text-sm text-slate-800 px-4 sm:px-6 focus:ring-primary shadow-sm transition-all focus:bg-white hover:bg-slate-100/50">
+                          <SelectTrigger className="h-11 rounded-xl bg-slate-50 border-slate-100 font-black text-sm text-slate-800 px-4 focus:ring-primary shadow-sm transition-all focus:bg-white hover:bg-slate-100/50">
                             <SelectValue placeholder="Logic" />
                           </SelectTrigger>
                           <SelectContent className="rounded-2xl border-slate-200 shadow-2xl p-2 bg-white">
-                            <SelectItem value="round" className="text-[10px] sm:text-sm font-black py-3 sm:py-4 rounded-xl">NEAREST INTEGER</SelectItem>
-                            <SelectItem value="ceil" className="text-[10px] sm:text-sm font-black py-3 sm:py-4 rounded-xl">CEILING BOUNDARY</SelectItem>
-                            <SelectItem value="floor" className="text-[10px] sm:text-sm font-black py-3 sm:py-4 rounded-xl">FLOOR BOUNDARY</SelectItem>
+                            <SelectItem value="round" className="text-[10px] sm:text-sm font-black py-2 rounded-xl">Round</SelectItem>
+                            <SelectItem value="ceil" className="text-[10px] sm:text-sm font-black py-2 rounded-xl">Ceiling</SelectItem>
+                            <SelectItem value="floor" className="text-[10px] sm:text-sm font-black py-2 rounded-xl">Floor</SelectItem>
                           </SelectContent>
                         </Select>
                       </div>
  
-                      <div className="space-y-2 sm:space-y-4">
-                        <Label className="text-[9px] sm:text-[11px] uppercase font-black text-slate-300 tracking-[0.15em] sm:tracking-[0.2em] mb-1 sm:mb-2 text-center sm:text-left">
-                          Stock Warning Boundary
+                      <div className="space-y-1.5">
+                        <Label className="text-[9px] sm:text-[10px] uppercase font-black text-slate-300 tracking-[0.15em] mb-1 text-center sm:text-left">
+                          Low stock alert (units)
                         </Label>
                         <div className="relative">
                           <Input 
                             type="number" 
                             value={settings.lowStockThreshold} 
                             onChange={(e) => handleUpdate('lowStockThreshold', Number(e.target.value))}
-                            className="h-12 sm:h-16 rounded-xl sm:rounded-[1.5rem] bg-slate-50 border-slate-100 font-black text-xs sm:text-sm text-slate-800 px-4 sm:px-6 pr-12 sm:pr-14 focus:ring-primary focus:bg-white shadow-sm transition-all text-center sm:text-left" 
+                            className="h-11 rounded-xl bg-slate-50 border-slate-100 font-black text-sm text-slate-800 px-4 pr-12 focus:ring-primary focus:bg-white shadow-sm transition-all text-center sm:text-left" 
                           />
-                          <span className="absolute right-4 sm:right-5 top-1/2 -translate-y-1/2 text-[8px] sm:text-[10px] font-black text-slate-300 uppercase tracking-widest leading-none">Units</span>
+                          <span className="absolute right-4 top-1/2 -translate-y-1/2 text-[8px] sm:text-[10px] font-black text-slate-300 uppercase tracking-widest leading-none">Units</span>
                         </div>
                       </div>
                     </div>
  
-                    <div className="flex flex-col sm:flex-row items-center justify-between gap-6 pt-6 sm:pt-10 border-t border-slate-100">
+                    <div className="flex flex-col sm:flex-row items-center justify-between gap-6 pt-5 sm:pt-6 border-t border-slate-100">
                       <Button 
                         variant="ghost" 
                         onClick={handleReset}
-                        className="w-full sm:w-auto text-[9px] sm:text-[11px] font-black uppercase tracking-[0.1em] sm:tracking-[0.3em] text-slate-400 hover:text-rose-500 hover:bg-rose-50/50 flex items-center justify-center sm:justify-start gap-2.5 sm:gap-3 h-11 sm:h-12 px-6 sm:px-8 rounded-xl sm:rounded-2xl transition-all group"
+                        className="w-full sm:w-auto text-xs tracking-wide text-slate-400 hover:text-rose-500 hover:bg-rose-50/50 flex items-center justify-center sm:justify-start gap-2.5 h-10 px-5 rounded-xl transition-all group"
                       >
                         <RotateCcw size={16} className="group-hover:-rotate-180 transition-transform duration-700" /> 
                         Purge Memory & Reset
                       </Button>
-                      <div className="flex items-center gap-2.5 sm:gap-3">
-                         <div className="h-1.5 w-1.5 sm:h-2 sm:w-2 rounded-full bg-emerald-500 animate-pulse" />
-                         <span className="text-[8px] sm:text-[10px] font-black uppercase tracking-[0.1em] sm:tracking-[0.2em] text-slate-300">System State: Synchronized</span>
+                      <div className="flex items-center gap-2.5">
+                         <div className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                         <span className="text-[8px] sm:text-[10px] font-black uppercase tracking-[0.1em] text-slate-300">System State: Synchronized</span>
                       </div>
                     </div>
                   </CardContent>

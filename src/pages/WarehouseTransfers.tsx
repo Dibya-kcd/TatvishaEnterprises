@@ -19,6 +19,7 @@ import { useIsMobile } from "@/lib/responsive";
 import { Product, Batch, Warehouse as WarehouseType, WarehouseTransfer } from "@/types";
 import { derivePackaging, convertToBaseUnits } from "@/lib/packaging";
 import { PageHeader } from "@/components/PageHeader";
+import { StockTabs } from "@/components/stock/StockTabs";
 import { StockBreakdownDisplay } from "@/components/StockBreakdownDisplay";
 
 export default function WarehouseTransfers() {
@@ -212,10 +213,11 @@ export default function WarehouseTransfers() {
   );
 
   return (
-    <div className="w-full space-y-5 pb-10 animate-fade-in px-0 sm:px-0">
+    <div className="w-full pb-10 animate-fade-in px-0 sm:px-0">
       <PageHeader 
-        title="Warehouse Relocation"
-        subtitle="Moving Stock Between Storage Nodes"
+        title="Stock Transfers"
+        subtitle="Move items between warehouses"
+        titleColor="var(--color-brand-primary)"
         onBack={() => navigate("/stock")}
         action={
           <div className="flex gap-3">
@@ -226,7 +228,7 @@ export default function WarehouseTransfers() {
             <Sheet open={open} onOpenChange={setOpen}>
               <SheetTrigger asChild>
                 <Button className="font-black uppercase tracking-widest text-[10px] h-10 px-4 rounded-xl shadow-lg shadow-primary/20 bg-emerald-600 hover:bg-emerald-700 text-white" onClick={resetForm}>
-                  <ArrowRightLeft className="h-3.5 w-3.5 mr-2" /> New Movement
+                  <ArrowRightLeft className="h-3.5 w-3.5 mr-2" /> New Transfer
                 </Button>
               </SheetTrigger>
               <SheetContent side={isMobile ? "bottom" : "right"} className={cn("rounded-t-[2.5rem] p-0 overflow-hidden border-t-0 shadow-2xl", isMobile ? "h-[92dvh]" : "w-[560px] h-full rounded-none")}>
@@ -234,14 +236,14 @@ export default function WarehouseTransfers() {
                   <div className="p-6 pb-0">
                     {isMobile && <div className="w-12 h-1.5 bg-muted rounded-full mx-auto mb-6" />}
                     <SheetHeader className="mb-6">
-                      <SheetTitle className="text-2xl font-black text-center">Inter-Warehouse Movement</SheetTitle>
-                      <p className="text-xs font-black uppercase tracking-widest text-muted-foreground opacity-60 text-center">Multi-Location Stock Transfer</p>
+                      <SheetTitle className="text-2xl font-black text-center">Move Between Warehouses</SheetTitle>
+                      <p className="text-xs font-black uppercase tracking-widest text-muted-foreground opacity-60 text-center">Internal Stock Transfer</p>
                     </SheetHeader>
                   </div>
 
                   <div className="flex-1 overflow-y-auto mt-2 px-6 pb-24 space-y-6">
                     <div className="space-y-1.5">
-                      <Label className="text-[10px] font-black uppercase text-muted-foreground ml-1">Universal Identifier (Product)</Label>
+                      <Label className="text-[10px] font-black uppercase text-muted-foreground ml-1">Product</Label>
                       <Select value={selectedProductId} onValueChange={setSelectedProductId}>
                         <SelectTrigger className="h-14 rounded-2xl border-2 bg-muted/20 font-bold focus:ring-primary/20">
                           <SelectValue placeholder="Choose product..." />
@@ -308,7 +310,7 @@ export default function WarehouseTransfers() {
                     </div>
 
                     <div className="space-y-1.5">
-                      <Label className="text-[10px] font-black uppercase text-muted-foreground ml-1">Transfer Magnitude (Qty)</Label>
+                      <Label className="text-[10px] font-black uppercase text-muted-foreground ml-1">Quantity to move</Label>
                       <div className="flex gap-2">
                         <Input 
                           type="number" 
@@ -347,7 +349,7 @@ export default function WarehouseTransfers() {
                     <Button variant="outline" className="h-14 rounded-2xl flex-1 font-black uppercase tracking-widest text-xs border-2" onClick={() => setOpen(false)}>Cancel</Button>
                     <Button className="h-14 rounded-2xl flex-[2] font-black uppercase tracking-widest text-xs shadow-xl shadow-emerald-200/50 bg-emerald-600 hover:bg-emerald-700" onClick={handleSubmit} disabled={submitting}>
                       {submitting ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Warehouse className="h-4 w-4 mr-2" />}
-                      Deploy to Target
+                      Move Stock
                     </Button>
                   </div>
                 </div>
@@ -357,7 +359,12 @@ export default function WarehouseTransfers() {
         }
       />
 
-      <Card className="rounded-[2.5rem] border-2 shadow-xl shadow-primary/5 overflow-hidden">
+      <div className="px-4">
+        <StockTabs />
+      </div>
+
+      <div className="px-4 pb-4">
+        <Card className="rounded-[2.5rem] border-2 shadow-xl shadow-primary/5 overflow-hidden">
         <CardHeader className="p-6 pb-2">
           <div className="relative">
             <Search className="absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground opacity-50" />
@@ -393,15 +400,15 @@ export default function WarehouseTransfers() {
                 </div>
                 
                 <div className="flex items-center gap-3">
-                  <Badge variant="outline" className="font-bold text-[9px] uppercase max-w-[100px] truncate">{t.from_warehouse?.name}</Badge>
+                  <Badge variant="outline" className="font-bold text-[9px] uppercase">{t.from_warehouse?.name}</Badge>
                   <ArrowRightLeft className="h-3 w-3 text-muted-foreground opacity-30 shrink-0" />
-                  <Badge variant="secondary" className="font-bold text-[9px] uppercase bg-emerald-100 text-emerald-700 max-w-[100px] truncate">{t.to_warehouse?.name}</Badge>
+                  <Badge variant="secondary" className="font-bold text-[9px] uppercase bg-emerald-100 text-emerald-700">{t.to_warehouse?.name}</Badge>
                 </div>
 
                 <div className="flex justify-between items-end">
                   <div className="space-y-1">
                     <p className="text-[10px] font-black uppercase text-muted-foreground">{fmtDate(t.created_at)}</p>
-                    {t.notes && <p className="text-[9px] text-muted-foreground italic truncate max-w-[150px]">{t.notes}</p>}
+                    {t.notes && <p className="text-[9px] text-muted-foreground italic">{t.notes}</p>}
                   </div>
                   <div className="text-right font-black text-lg tabular-nums text-primary">
                     <div className="flex flex-col items-end">
@@ -422,10 +429,10 @@ export default function WarehouseTransfers() {
             <Table className="w-full table-fixed">
             <TableHeader>
               <TableRow className="bg-muted/30 border-y-2 border-border/50">
-                <TableHead className="py-4 pl-6 text-[10px] font-black uppercase tracking-widest text-muted-foreground w-[120px] hidden lg:table-cell">Log Entry</TableHead>
-                <TableHead className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Product Entity</TableHead>
-                <TableHead className="text-[10px] font-black uppercase tracking-widest text-muted-foreground text-center hidden xl:table-cell">Relocation Path</TableHead>
-                <TableHead className="text-right text-[10px] font-black uppercase tracking-widest text-muted-foreground w-[100px]">Magnitude</TableHead>
+                <TableHead className="py-4 pl-6 text-[10px] font-black uppercase tracking-widest text-muted-foreground w-[120px] hidden lg:table-cell">Date</TableHead>
+                <TableHead className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Product</TableHead>
+                <TableHead className="text-[10px] font-black uppercase tracking-widest text-muted-foreground text-center hidden xl:table-cell">From/To</TableHead>
+                <TableHead className="text-right text-[10px] font-black uppercase tracking-widest text-muted-foreground w-[100px]">Quantity</TableHead>
                 <TableHead className="pr-6 text-[10px] font-black uppercase tracking-widest text-muted-foreground text-right">Status</TableHead>
               </TableRow>
             </TableHeader>
@@ -440,7 +447,7 @@ export default function WarehouseTransfers() {
                     <p className="text-[10px] font-black uppercase text-foreground">{fmtDate(t.created_at)}</p>
                   </TableCell>
                   <TableCell>
-                    <div className="font-black text-sm uppercase tracking-tight text-foreground group-hover:text-primary transition-colors truncate">{t.products?.name}</div>
+                    <div className="font-black text-sm uppercase tracking-tight text-foreground group-hover:text-primary transition-colors">{t.products?.name}</div>
                     <div className="text-[10px] font-black font-mono text-muted-foreground uppercase opacity-60 tracking-tighter">Batch: {t.batch?.batch_number}</div>
                   </TableCell>
                   <TableCell className="hidden xl:table-cell">
@@ -477,6 +484,7 @@ export default function WarehouseTransfers() {
           )}
         </CardContent>
       </Card>
+      </div>
     </div>
   );
 }

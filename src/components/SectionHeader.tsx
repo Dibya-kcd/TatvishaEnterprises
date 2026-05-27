@@ -2,6 +2,7 @@ import * as React from "react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { ChevronRight } from "lucide-react";
+import { useIsMobile } from "@/lib/responsive";
 
 interface SectionHeaderProps {
   title: string;
@@ -13,11 +14,13 @@ interface SectionHeaderProps {
 }
 
 export function SectionHeader({ title, subtitle, actionLabel, onAction, className, children }: SectionHeaderProps) {
+  const isMobile = useIsMobile();
+  
   return (
     <div className={cn("mb-4 flex items-end justify-between", className)}>
       <div>
         <h2 className="text-base font-semibold tracking-tight text-foreground">{title}</h2>
-        {subtitle && <p className="text-sm font-medium text-muted-foreground">{subtitle}</p>}
+        {/* {subtitle && !isMobile && <p className="text-sm font-medium text-muted-foreground">{subtitle}</p>} */}
       </div>
       <div className="flex items-center gap-3">
         {children}

@@ -78,13 +78,14 @@ export default function Auth() {
   }
 
   return (
-    <div className="flex min-h-dvh items-center justify-center bg-background px-4 py-12">
-      <div className="absolute inset-x-0 top-0 -z-10 h-64 bg-brand-gradient opacity-10 lg:h-96" />
+    <div className="flex min-h-dvh items-center justify-center bg-transparent px-4 py-12 relative overflow-hidden">
+      <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-brand-primary/20 rounded-full blur-[120px] animate-pulse" />
+      <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-brand-secondary/20 rounded-full blur-[120px] animate-pulse delay-700" />
       
-      <Card className="w-full max-w-sm border border-border/60 shadow-md transition-all animate-fade-in hover:shadow-lg rounded-2xl">
-        <CardHeader className="space-y-1 text-center">
-          <div className="mx-auto mb-6 flex h-16 w-16 items-center justify-center rounded-2xl bg-brand-gradient shadow-brand ring-4 ring-white">
-            <span className="text-2xl font-black tracking-tighter text-white">TE</span>
+      <Card className="w-full max-w-sm border border-white/30 glass-card shadow-2xl transition-all animate-fade-in hover:shadow-brand p-2 rounded-[2.5rem]">
+        <CardHeader className="space-y-1 text-center pb-8 pt-8">
+          <div className="mx-auto mb-6 flex h-20 w-20 items-center justify-center rounded-3xl bg-brand-gradient shadow-brand ring-4 ring-white/30 backdrop-blur-sm transform hover:scale-110 transition-transform duration-500">
+            <span className="text-3xl font-black tracking-tighter text-white">TE</span>
           </div>
           <CardTitle className="text-xl font-black uppercase tracking-widest text-brand-primary">Secure Terminal</CardTitle>
           <CardDescription className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/60">
@@ -139,7 +140,7 @@ export default function Auth() {
             </div>
 
             <Button 
-              className="group h-12 w-full bg-brand-primary font-bold shadow-lg shadow-brand-primary/20 rounded-xl active:scale-95 transition-all text-white" 
+              className="group h-14 w-full bg-brand-primary font-black uppercase tracking-widest text-xs shadow-xl shadow-brand-primary/20 rounded-2xl active:scale-95 transition-all text-white border-none hover:bg-brand-primary/90" 
               type="submit" 
               disabled={loading}
             >

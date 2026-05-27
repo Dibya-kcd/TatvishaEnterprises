@@ -109,17 +109,14 @@ export default function Reports() {
   return (
     <div className="space-y-6 pb-24">
       <PageHeader 
-        title="Reports & Analytics" 
-        subtitle="Intelligence & Insights"
+        title="Report" 
+        titleColor="var(--color-brand-primary)"
         onBack={() => navigate("/")}
-        actionLabel="Refresh"
-        actionIcon={<RefreshCcw className={cn("h-4 w-4", loading && "animate-spin")} />}
-        onAction={handleRefresh}
       />
 
-      <div className="space-y-6">
+      <div className="space-y-4">
         {/* Metric Focus Tabs - Integrated into Navigation Style */}
-        <div className="sticky top-16 z-20 bg-white/80 backdrop-blur-md border border-black/[0.04] p-1.5 rounded-2xl shadow-sm">
+        <div className="sticky top-0 z-20 bg-white/95 backdrop-blur-md border-b border-black/[0.04] p-1 shadow-sm -mx-4 px-4">
           <div className="flex items-center justify-between">
               {tabs.map((tab) => {
                 const Icon = tab.icon;
@@ -132,13 +129,13 @@ export default function Reports() {
                       window.scrollTo({ top: 0, behavior: 'smooth' });
                     }}
                     className={cn(
-                      "flex flex-col items-center gap-1 px-3 md:px-4 pt-3.5 md:pt-4 pb-2.5 md:pb-3 transition-all cursor-pointer relative flex-1 md:min-w-[80px]",
+                      "flex flex-col items-center gap-1 px-2 pt-2.5 pb-1.5 transition-all cursor-pointer relative flex-1",
                       isActive ? "opacity-100" : "opacity-50 hover:opacity-100"
                     )}
                   >
-                    <Icon className={cn("w-4 h-4 md:w-5 md:h-5", isActive ? "text-amber-700" : "text-slate-600")} />
+                    <Icon className={cn("w-4 h-4", isActive ? "text-amber-700" : "text-slate-600")} />
                     <span className={cn(
-                      "text-[9px] md:text-[11px] font-bold transition-colors",
+                      "text-[9px] font-black uppercase tracking-tight transition-colors",
                       isActive ? "text-amber-700" : "text-slate-600"
                     )}>
                       {tab.label}
@@ -146,7 +143,7 @@ export default function Reports() {
                     {isActive && (
                       <motion.div 
                         layoutId="activeTabPanel"
-                        className="absolute bottom-0 left-0 right-0 h-[2px] md:h-[2.5px] bg-amber-700 rounded-t-full"
+                        className="absolute bottom-0 left-2 right-2 h-[2px] bg-amber-700 rounded-t-full"
                         transition={{ type: "spring", bounce: 0.2, duration: 0.6 }}
                       />
                     )}
@@ -156,84 +153,39 @@ export default function Reports() {
             </div>
           </div>
 
-          <div className="space-y-6 mt-6">
+          <div className="space-y-4">
             {/* Date Filters (Time Horizon) */}
             {activeTab !== 'stock' ? (
-              <div className="w-full bg-white p-5 rounded-3xl border border-black/[0.06] shadow-sm flex items-center justify-between animate-in fade-in slide-in-from-top-2 duration-300">
-                <div className="flex items-center gap-5">
-                  <div className="w-14 h-14 rounded-2xl bg-[#fff8f1] flex items-center justify-center text-[#a8522b] border border-[#f5e1d3] shadow-sm shrink-0">
-                    <Calendar className="w-7 h-7" />
+              <div className="w-full bg-white p-4 rounded-3xl border border-black/[0.06] shadow-sm flex items-center justify-between animate-in fade-in slide-in-from-top-2 duration-300">
+                <div className="flex items-center gap-4">
+                  <div className="w-12 h-12 rounded-2xl bg-[#fff8f1] flex items-center justify-center text-[#a8522b] border border-[#f5e1d3] shadow-sm shrink-0">
+                    <Calendar className="w-6 h-6" />
                   </div>
                   <div className="min-w-0">
-                    <div className="text-[10px] font-black uppercase tracking-[0.15em] text-slate-400">Analysis Horizon</div>
-                    <div className="flex flex-wrap items-center gap-2.5 mt-0.5">
-                      <span className="text-[22px] font-bold text-slate-800 tracking-tight">{periodLabel}</span>
-                      <div className="bg-[#e6f4ea] text-[#1e8e3e] text-[10px] font-bold px-3 py-1 rounded-full flex items-center gap-1.5 border border-emerald-100/30">
-                         Active
-                      </div>
+                    <div className="text-[9px] font-black uppercase tracking-[0.15em] text-slate-400">Time Period</div>
+                    <div className="flex items-center gap-2 mt-0.5">
+                      <span className="text-lg font-black text-slate-800 tracking-tight truncate">{periodLabel}</span>
                     </div>
                   </div>
                 </div>
-                
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <button className="h-11 w-11 rounded-2xl bg-[#fdfaf6] border border-[#e8dfd5] shadow-sm flex items-center justify-center text-[#a8522b] hover:bg-amber-50 transition-all group shrink-0 active:scale-95">
-                      <SlidersHorizontal className="w-5 h-5 transition-transform group-hover:rotate-12" />
-                    </button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end" className="w-[220px] rounded-2xl p-2 shadow-2xl border border-black/5 bg-white/95 backdrop-blur-xl">
-                    <DropdownMenuLabel className="text-[10px] uppercase tracking-[0.15em] text-slate-400 font-black px-3 py-2.5">Temporal Range</DropdownMenuLabel>
-                    <DropdownMenuSeparator className="bg-black/5 mx-1 mb-1" />
-                    {periods.map((p) => (
-                      <DropdownMenuItem 
-                        key={p.id}
-                        onClick={() => {
-                          if (p.id === 'custom') {
-                            setShowCustomPicker(true);
-                          } else {
-                            setPeriod(p.id);
-                          }
-                        }}
-                        className={cn(
-                          "rounded-xl px-3 py-3 text-[13px] font-bold cursor-pointer transition-all flex items-center justify-between group",
-                          period === p.id 
-                            ? "bg-amber-700 text-white shadow-lg shadow-amber-700/20" 
-                            : "hover:bg-slate-50 text-slate-600 hover:text-slate-900"
-                        )}
-                      >
-                        <div className="flex items-center gap-3">
-                           <div className={cn(
-                             "w-1.5 h-1.5 rounded-full",
-                             period === p.id ? "bg-white" : "bg-slate-200 group-hover:bg-amber-600"
-                           )} />
-                           {p.label}
-                        </div>
-                        {period === p.id && <div className="text-[9px] font-black uppercase opacity-70">Current</div>}
-                      </DropdownMenuItem>
-                    ))}
-                  </DropdownMenuContent>
-                </DropdownMenu>
+                               <div className="flex items-center gap-2 shrink-0">
+                  {/* Buttons moved to FAB */}
+                </div>
               </div>
             ) : (
-              <div className="w-full bg-white p-5 rounded-3xl border border-black/[0.06] shadow-sm flex items-center justify-between animate-in fade-in slide-in-from-top-2 duration-300">
-                <div className="flex items-center gap-5">
-                  <div className="w-14 h-14 rounded-2xl bg-[#e6f4ea] flex items-center justify-center text-[#1e8e3e] border border-emerald-100/30 shadow-sm shrink-0">
-                    <Clock className="w-7 h-7" />
+              <div className="w-full bg-white p-4 rounded-3xl border border-black/[0.06] shadow-sm flex items-center justify-between animate-in fade-in slide-in-from-top-2 duration-300">
+                <div className="flex items-center gap-4">
+                  <div className="w-12 h-12 rounded-2xl bg-[#e6f4ea] flex items-center justify-center text-[#1e8e3e] border border-emerald-100/30 shadow-sm shrink-0">
+                    <Clock className="w-6 h-6" />
                   </div>
                   <div className="min-w-0">
-                    <div className="text-[10px] font-black uppercase tracking-[0.15em] text-slate-400">Inventory Status</div>
-                    <div className="flex flex-wrap items-center gap-2.5 mt-0.5">
-                      <span className="text-[22px] font-bold text-slate-800 tracking-tight">Real-time</span>
-                      <div className="bg-[#e6f4ea] text-[#1e8e3e] text-[10px] font-bold px-3 py-1 rounded-full flex items-center gap-1.5 border border-emerald-100/30">
-                         <div className="w-1 h-1 rounded-full bg-emerald-500 animate-pulse" />
-                         Live
-                      </div>
+                    <div className="text-[9px] font-black uppercase tracking-[0.15em] text-slate-400">Inventory Status</div>
+                    <div className="flex items-center gap-2 mt-0.5">
+                      <span className="text-lg font-black text-slate-800 tracking-tight">Real-time</span>
                     </div>
                   </div>
                 </div>
-                <button onClick={handleRefresh} className="h-11 w-11 rounded-2xl bg-[#f6faf8] border border-[#d5e8df] shadow-sm flex items-center justify-center text-[#1e8e3e] hover:bg-emerald-50 transition-all hover:scale-105 active:scale-95 group shrink-0">
-                  <RefreshCcw className={cn("w-5 h-5 group-hover:rotate-45 transition-transform", loading && "animate-spin")} />
-                </button>
+                {/* Refresh button moved to FAB */}
               </div>
             )}
           </div>
@@ -282,7 +234,59 @@ export default function Reports() {
           </main>
         </div>
 
+      {/* Floating Action Buttons */}
+      <div className="fixed top-20 right-4 z-50 flex flex-col gap-2">
+        <button 
+          onClick={handleRefresh} 
+          className="h-8 w-8 rounded-full bg-slate-100/50 backdrop-blur-sm border border-black/5 flex items-center justify-center text-amber-700 hover:bg-amber-100/50 transition-all active:scale-95 group"
+        >
+          <RefreshCcw className={cn("w-4 h-4 transition-transform group-hover:rotate-45", loading && "animate-spin")} />
+        </button>
+
+        {activeTab !== 'stock' && (
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <button className="h-8 w-8 rounded-full bg-amber-600/10 backdrop-blur-sm border border-amber-600/10 flex items-center justify-center text-amber-600 hover:bg-amber-600/20 transition-all active:scale-95 group">
+                <SlidersHorizontal className="w-4 h-4 transition-transform group-hover:rotate-12" />
+              </button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-[220px] rounded-2xl p-2 shadow-2xl border border-black/5 bg-white/95 backdrop-blur-xl mt-1">
+              <DropdownMenuLabel className="text-[10px] uppercase tracking-[0.15em] text-slate-400 font-black px-3 py-2.5">Temporal Range</DropdownMenuLabel>
+              <DropdownMenuSeparator className="bg-black/5 mx-1 mb-1" />
+              {periods.map((p) => (
+                <DropdownMenuItem 
+                  key={p.id}
+                  onClick={() => {
+                    if (p.id === 'custom') {
+                      setShowCustomPicker(true);
+                    } else {
+                      setPeriod(p.id);
+                    }
+                  }}
+                  className={cn(
+                    "rounded-xl px-3 py-3 text-[13px] font-bold cursor-pointer transition-all flex items-center justify-between group",
+                    period === p.id 
+                      ? "bg-amber-700 text-white shadow-lg shadow-amber-700/20" 
+                      : "hover:bg-slate-50 text-slate-600 hover:text-slate-900"
+                  )}
+                >
+                  <div className="flex items-center gap-3">
+                      <div className={cn(
+                        "w-1.5 h-1.5 rounded-full",
+                        period === p.id ? "bg-white" : "bg-slate-200 group-hover:bg-amber-600"
+                      )} />
+                      {p.label}
+                  </div>
+                  {period === p.id && <div className="text-[9px] font-black uppercase opacity-70">Current</div>}
+                </DropdownMenuItem>
+              ))}
+            </DropdownMenuContent>
+          </DropdownMenu>
+        )}
+      </div>
+
       <ResponsiveDialog 
+ 
         open={showCustomPicker} 
         onOpenChange={setShowCustomPicker}
         title="Custom Date Range"

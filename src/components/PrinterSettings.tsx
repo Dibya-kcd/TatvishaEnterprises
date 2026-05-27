@@ -78,9 +78,9 @@ export function PrinterSettings() {
   ];
 
   return (
-    <div className="space-y-6 max-w-2xl mx-auto px-4 py-4 sm:py-8 animate-in fade-in duration-500">
-      <Card className="border shadow-lg rounded-2xl overflow-hidden bg-white">
-        <CardHeader className="border-b bg-slate-50/50 p-6">
+    <div className="space-y-4 animate-in fade-in duration-500">
+      <Card className="border border-slate-100 shadow-sm rounded-2xl overflow-hidden bg-white">
+        <CardHeader className="border-b bg-slate-50/50 px-5 py-4">
           <div className="flex items-center justify-between gap-4">
             <div className="space-y-1">
               <CardTitle className="text-xl font-bold text-slate-900">Printer Setup</CardTitle>
@@ -110,22 +110,22 @@ export function PrinterSettings() {
         
         <CardContent className="p-0">
           {/* Step Guide */}
-          <div className="p-6 border-b bg-white">
-            <div className="flex flex-col gap-4">
+          <div className="px-5 py-4 border-b bg-white">
+            <div className="flex flex-col sm:flex-row sm:gap-6 gap-3">
               {steps.map((step) => (
-                <div key={step.id} className="flex items-start gap-4 group">
+                <div key={step.id} className="flex items-start gap-2.5 flex-1">
                   <div className={cn(
-                    "h-8 w-8 rounded-full flex items-center justify-center shrink-0 transition-all duration-300 border-2",
+                    "h-7 w-7 rounded-full flex items-center justify-center shrink-0 transition-all duration-300 border-2",
                     step.completed ? "bg-emerald-500 border-emerald-500 text-white" :
                     step.active ? "border-primary text-primary" : "border-slate-200 text-slate-300"
                   )}>
                     {step.completed ? <Check className="h-4 w-4" /> : <span className="text-xs font-bold">{step.id}</span>}
                   </div>
                   <div className="space-y-0.5">
-                    <p className={cn("text-sm font-bold uppercase tracking-tight", 
+                    <p className={cn("text-[11px] font-bold uppercase tracking-tight", 
                       step.completed ? "text-slate-900" : step.active ? "text-primary" : "text-slate-400"
                     )}>{step.label}</p>
-                    <p className="text-xs font-medium text-slate-400">{step.desc}</p>
+                    <p className="text-[10px] font-medium text-slate-400">{step.desc}</p>
                   </div>
                 </div>
               ))}
@@ -133,7 +133,7 @@ export function PrinterSettings() {
           </div>
 
           {/* Action Area */}
-          <div className="p-8 flex flex-col items-center gap-6">
+          <div className="px-5 py-4 flex flex-col gap-4">
             <AnimatePresence mode="wait">
               {state === 'error' && (
                 <motion.div 
@@ -216,12 +216,12 @@ export function PrinterSettings() {
                 <Button 
                   onClick={() => scan()}
                   disabled={state === 'scanning' || state === 'connecting'}
-                  className="w-full h-14 sm:h-16 rounded-xl font-bold uppercase tracking-widest text-sm shadow-md transition-all active:scale-[0.98]"
+                  className="w-full h-11 rounded-xl font-bold uppercase tracking-widest text-xs shadow-md transition-all active:scale-[0.98]"
                 >
                   {state === 'scanning' ? (
-                    <><RefreshCw className="mr-3 h-5 w-5 animate-spin" /> Scanning...</>
+                    <><RefreshCw className="mr-3 h-4 w-4 animate-spin" /> Scanning...</>
                   ) : state === 'connecting' ? (
-                    <><RefreshCw className="mr-3 h-5 w-5 animate-spin" /> Linking...</>
+                    <><RefreshCw className="mr-3 h-4 w-4 animate-spin" /> Linking...</>
                   ) : "Scan & Connect"}
                 </Button>
               ) : (
@@ -229,9 +229,9 @@ export function PrinterSettings() {
                   onClick={handleTestPrint}
                   disabled={isTesting}
                   variant="outline"
-                  className="w-full h-14 sm:h-16 rounded-xl font-bold uppercase tracking-widest text-sm border-2 border-slate-200 hover:bg-slate-50 transition-all active:scale-[0.98]"
+                  className="w-full h-11 rounded-xl font-bold uppercase tracking-widest text-xs border-2 border-slate-200 hover:bg-slate-50 transition-all active:scale-[0.98]"
                 >
-                  {isTesting ? <RefreshCw className="mr-3 h-5 w-5 animate-spin text-primary" /> : <Printer className="mr-3 h-5 w-5 text-primary" />}
+                  {isTesting ? <RefreshCw className="mr-3 h-4 w-4 animate-spin text-primary" /> : <Printer className="mr-3 h-4 w-4 text-primary" />}
                   Test Print
                 </Button>
               )}
@@ -250,7 +250,7 @@ export function PrinterSettings() {
 
       {/* Helpful Tips */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        <div className="p-5 rounded-2xl bg-amber-50/50 border border-amber-100/50 flex gap-4 items-start">
+        <div className="p-4 rounded-xl bg-amber-50/50 border border-amber-100/50 flex gap-4 items-start">
           <Zap className="h-5 w-5 text-amber-500 shrink-0 mt-0.5" />
           <div className="space-y-1">
             <p className="text-xs font-bold text-amber-900 uppercase tracking-wider">Pro Tip</p>
@@ -259,7 +259,7 @@ export function PrinterSettings() {
             </p>
           </div>
         </div>
-        <div className="p-5 rounded-2xl bg-blue-50/50 border border-blue-100/50 flex gap-4 items-start">
+        <div className="p-4 rounded-xl bg-blue-50/50 border border-blue-100/50 flex gap-4 items-start">
           <Smartphone className="h-5 w-5 text-blue-500 shrink-0 mt-0.5" />
           <div className="space-y-1">
             <p className="text-xs font-bold text-blue-900 uppercase tracking-wider">Android Note</p>

@@ -6,7 +6,7 @@ import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { ChevronLeft, Loader2, Plus, Search, Warehouse, Edit2, Trash2, MapPin, Hash } from "lucide-react";
+import { ChevronLeft, Loader2, Plus, Search, Warehouse, Edit2, Trash2, MapPin, Hash, X } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { friendlyError } from "@/lib/errors";
@@ -15,6 +15,8 @@ import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import { Warehouse as WarehouseType } from "@/types";
 import { PageHeader } from "@/components/PageHeader";
+import { StockTabs } from "@/components/stock/StockTabs";
+import { ResponsiveContainer } from "@/components/ui/responsive-ui";
 
 import { useIsMobile } from "@/lib/responsive";
 
@@ -147,6 +149,7 @@ export default function Warehouses() {
       <PageHeader 
         title="Warehouses"
         subtitle="Manage locations for stock storage"
+        titleColor="var(--color-brand-primary)"
         onBack={() => navigate("/stock")}
         action={
           <Sheet open={open} onOpenChange={handleOpenChange}>
@@ -229,16 +232,27 @@ export default function Warehouses() {
         }
       />
 
+      <StockTabs />
+
       <Card className="rounded-2xl border border-border/60 shadow-sm overflow-hidden">
         <CardHeader className="p-6 pb-2">
           <div className="relative">
             <Search className="absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground opacity-50" />
             <Input 
-              className="pl-11 h-11 rounded-xl border bg-muted/5 focus:bg-background transition-all" 
+              className="pl-11 pr-10 h-11 rounded-xl border bg-muted/5 focus:bg-background transition-all" 
               placeholder="Filter warehouses by name or location..." 
               value={search}
               onChange={e => setSearch(e.target.value)}
             />
+            {search && (
+              <button 
+                onClick={() => setSearch("")}
+                className="absolute right-3 top-1/2 -translate-y-1/2 h-6 w-6 flex items-center justify-center text-slate-300 hover:text-slate-600 transition-colors"
+                title="Clear search"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            )}
           </div>
         </CardHeader>
         <CardContent className="p-0 mt-4 overflow-x-auto">
@@ -256,7 +270,7 @@ export default function Warehouses() {
               {loading ? (
                 <TableRow><TableCell colSpan={5} className="text-center py-20"><Loader2 className="h-8 w-8 animate-spin mx-auto text-primary opacity-20" /></TableCell></TableRow>
               ) : filtered.length === 0 ? (
-                <TableRow><TableCell colSpan={5} className="text-center py-20 text-muted-foreground italic font-medium opacity-50 uppercase tracking-widest text-xs">No warehouses configured</TableCell></TableRow>
+                <TableRow><TableCell colSpan={5} className="text-center py-20 text-muted-foreground italic font-medium opacity-50 uppercase tracking-widest text-xs">No warehouses added</TableCell></TableRow>
               ) : filtered.map(w => (
                 <TableRow key={w.id} className="group hover:bg-muted/10 transition-colors border-b border-border/30">
                   <TableCell className="pl-6 py-6">

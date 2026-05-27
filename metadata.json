@@ -1,6 +1,6 @@
 {
-  "name": "Tatvisha Enterprises Order & Inventory Management",
-  "description": "A comprehensive system for Tatvisha Enterprises to manage products, orders, stock levels, shops, and generate invoices with Supabase integration.",
-  "requestFramePermissions": ["camera", "bluetooth"],
+  "name": "Tatvisha Distribution System",
+  "description": "Professional Distribution & Inventory Management System for Tatvisha Enterprises",
+  "requestFramePermissions": [],
   "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
 }

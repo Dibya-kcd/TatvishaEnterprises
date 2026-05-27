@@ -15,6 +15,8 @@ interface PageHeaderProps {
   actionIcon?: React.ReactNode;
   className?: string;
   disableTeleport?: boolean;
+  titleColor?: string;
+  titleClassName?: string;
 }
 
 export function PageHeader({ 
@@ -26,7 +28,9 @@ export function PageHeader({
   actionLabel, 
   actionIcon, 
   className,
-  disableTeleport = false
+  disableTeleport = false,
+  titleColor,
+  titleClassName
 }: PageHeaderProps) {
   const isMobile = useIsMobile();
   const isTablet = useIsTablet();
@@ -38,13 +42,13 @@ export function PageHeader({
     return (
       <Button 
         onClick={onAction} 
-        size={compact ? "sm" : "default"}
-        variant={compact ? "outline" : "default"}
+        size={compact ? "sm" : "lg"}
+        variant={compact ? "glass" : "default"}
         className={cn(
           "transition-all active:scale-95",
           compact 
-            ? cn("rounded-xl h-10 md:h-11 lg:h-9 border-border bg-card shadow-sm font-bold text-xs px-4 md:px-6 lg:px-4", isTablet && "bg-primary/5 border-primary/20 text-primary")
-            : "h-12 rounded-2xl bg-primary text-white font-black shadow-lg shadow-primary/20 hover:shadow-xl hover:scale-[1.02] items-center leading-none px-8 text-sm"
+            ? "rounded-xl h-10 md:h-11 lg:h-9 border-border font-bold text-xs px-4"
+            : "font-black shadow-lg shadow-primary/20 hover:shadow-xl hover:scale-[1.02] items-center px-8"
         )}
       >
         {actionIcon && (
@@ -62,29 +66,35 @@ export function PageHeader({
 
   const HeaderTitleContent = () => (
     <div className="flex flex-col animate-in fade-in slide-in-from-left-4 duration-500">
-      <div className="flex items-center gap-2">
-        <div className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground opacity-50 leading-none truncate max-w-[150px]">
-          {subtitle && typeof subtitle === 'string' ? subtitle : "Admin Console"}
-        </div>
-      </div>
-      <div className="text-sm md:text-base font-black tracking-tight text-foreground line-clamp-1 mt-0.5">
+      <div 
+        className={cn(
+          "text-lg md:text-xl font-black tracking-tight line-clamp-1 leading-tight",
+          titleClassName
+        )}
+        style={{ color: titleColor }}
+      >
         {title}
       </div>
+      {subtitle && (
+        <div className="hidden">
+          {subtitle}
+        </div>
+      )}
     </div>
   );
 
   return (
     <>
-      {!isMobile && !disableTeleport && (
+      {!disableTeleport && (
         <TeleportAction to="header-title-portal">
           <HeaderTitleContent />
         </TeleportAction>
       )}
 
       <div className={cn(
-        "flex flex-col gap-4 mb-6 md:mb-8 lg:mb-10 px-1",
+        "flex flex-col gap-4 mb-3 px-1",
         "sm:flex-row sm:items-start sm:justify-between lg:items-center",
-        !isMobile && !disableTeleport && "hidden sm:hidden md:hidden lg:hidden", // Hide on desktop if teleported
+        !disableTeleport && "hidden", // Hide on desktop/mobile if teleported
         className
       )}>
         <div className="flex items-center justify-between gap-4 w-full">
@@ -108,31 +118,20 @@ export function PageHeader({
                  )}>
                   {title}
                 </h1>
-                {isMobile && (action || (actionLabel && onAction)) && (
-                  <div className="flex shrink-0 items-center justify-end">
-                     <ActionButton compact />
-                  </div>
-                )}
                 {!isMobile && subtitle && (
                   <div className="h-6 w-px bg-border/60 mx-2 hidden lg:block" />
                 )}
               </div>
-              {subtitle && (
-                <div className={cn(
-                  "font-medium text-slate-400 leading-tight truncate",
-                  isMobile ? "text-xs" : "text-sm"
-                )}>
-                  {subtitle}
-                </div>
-              )}
+              {/* subtitle removed as requested */}
             </div>
           </div>
         </div>
 
-        {!isMobile && (action || (actionLabel && onAction)) && (
+        {/* Action teleporting */}
+        {(action || (actionLabel && onAction)) && (
           disableTeleport ? (
-            <div className="flex shrink-0 gap-3 md:pt-2 lg:pt-0">
-              <ActionButton />
+            <div className={cn("flex shrink-0 gap-3 md:pt-2 lg:pt-0", isMobile && "items-center")}>
+              <ActionButton compact={isMobile} />
             </div>
           ) : (
             <TeleportAction>

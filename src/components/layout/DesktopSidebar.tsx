@@ -1,6 +1,6 @@
 import React from "react";
 import { NavLink } from "react-router-dom";
-import { ChevronDown, PanelLeft, PanelLeftClose, ChevronRight } from "lucide-react";
+import { ChevronDown, PanelLeft, PanelLeftClose, ChevronRight, Plus } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import {
@@ -48,7 +48,7 @@ export function DesktopSidebar({
 }: SidebarProps) {
   return (
     <aside className={cn(
-      "hidden md:flex flex-col border-r border-border bg-card shadow-sm sticky top-0 h-dvh transition-all duration-300 ease-in-out z-40",
+      "hidden md:flex flex-col border-r border-border glass-panel shadow-sm sticky top-0 h-dvh transition-all duration-300 ease-in-out z-40",
       sidebarCollapsed ? "w-16" : "w-64 lg:w-72"
     )}>
       <div className={cn(
@@ -77,6 +77,26 @@ export function DesktopSidebar({
       <div className="flex-1 overflow-y-auto p-4 space-y-1.5 scrollbar-thin">
         <div className="flex flex-col h-full">
           <div className={cn("flex flex-col space-y-1.5", sidebarCollapsed && "items-center")}>
+            <div className="w-full px-1.5 mb-2">
+              {sidebarCollapsed ? (
+                <button
+                  onClick={() => onNavigate("/orders/new")}
+                  className="mx-auto flex h-10 w-10 items-center justify-center rounded-xl bg-primary hover:bg-primary/95 text-white shadow-md shadow-primary/20 active:scale-95 transition-all duration-200"
+                  title="New Order"
+                >
+                  <Plus className="h-5 w-5" />
+                </button>
+              ) : (
+                <button
+                  onClick={() => onNavigate("/orders/new")}
+                  className="w-full flex items-center justify-center gap-2 px-4 py-3 h-11 rounded-2xl bg-primary hover:bg-primary/95 text-white font-black text-xs shadow-md shadow-primary/25 active:scale-[0.98] transition-all duration-200 tracking-wide uppercase"
+                >
+                  <Plus className="h-4.5 w-4.5" />
+                  <span>New Order</span>
+                </button>
+              )}
+            </div>
+
             {!sidebarCollapsed && (
               <div className="px-3 mb-2">
                 <p className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground opacity-40">Navigation</p>

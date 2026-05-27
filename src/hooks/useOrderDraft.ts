@@ -43,6 +43,7 @@ export function useOrderDraft({ editId, initialShopId }: UseOrderDraftProps = {}
   const [persistedId, setPersistedId] = useState<string | undefined>(editId);
   const [originalStatus, setOriginalStatus] = useState<string | null>(null);
   const [originalLines, setOriginalLines] = useState<Line[]>([]);
+  const [orderNumber, setOrderNumber] = useState<string | null>(null);
 
   const lastLoadedIdRef = useRef<string | undefined>(undefined);
 
@@ -131,6 +132,7 @@ export function useOrderDraft({ editId, initialShopId }: UseOrderDraftProps = {}
       setOrderDate(draftDate > today ? today : draftDate);
       setPersistedId(order.id);
       setOriginalStatus(order.status);
+      setOrderNumber(order.order_number);
       lastLoadedIdRef.current = order.id;
 
       if (!order.order_items || order.order_items.length === 0) {
@@ -213,6 +215,7 @@ export function useOrderDraft({ editId, initialShopId }: UseOrderDraftProps = {}
           display_weight_unit: p?.display_weight_unit,
           units_per_packet: p?.units_per_packet,
           packets_per_case: p?.packets_per_case,
+          units_per_case: p?.units_per_case,
         } as Line;
       });
       setLines(itemLines);
@@ -236,6 +239,7 @@ export function useOrderDraft({ editId, initialShopId }: UseOrderDraftProps = {}
       setDiscountAmount(0);
       setNotes("");
       setPersistedId(undefined);
+      setOrderNumber(null);
       lastLoadedIdRef.current = undefined;
       
       if (!keepContext) {
@@ -487,6 +491,7 @@ export function useOrderDraft({ editId, initialShopId }: UseOrderDraftProps = {}
         avg_landed_cost: batch ? batch.landed_cost : p.inventory?.avg_landed_cost,
         units_per_packet: p.units_per_packet,
         packets_per_case: p.packets_per_case,
+        units_per_case: p.units_per_case,
         isNew: isEdit // If in edit mode and not found in prev, it's new
       }];
     });
@@ -504,7 +509,7 @@ export function useOrderDraft({ editId, initialShopId }: UseOrderDraftProps = {}
   }, [originalLines, editId]);
 
   const updateLineQty = useCallback((id: string, q: number, batchId?: string) => {
-    const qty = Math.max(1, q);
+    const qty = Math.max(0, q);
     setLines(prev => prev.map(l => {
       if (l.product_id === id && (!batchId || l.batch_id === batchId)) {
         const multiplier = getPackMultiplier(l as unknown as Product, l.packType as PackType);
@@ -583,6 +588,7 @@ export function useOrderDraft({ editId, initialShopId }: UseOrderDraftProps = {}
     totals,
     loading,
     persistedId,
+    orderNumber,
     originalStatus,
     addProduct,
     removeLine,
@@ -594,7 +600,7 @@ export function useOrderDraft({ editId, initialShopId }: UseOrderDraftProps = {}
   }), [
     shopId, warehouseId, lines, discountAmount, discountType, notes, 
     orderDate, outstandingBalance, priceTiers, priceOverrides, 
-    totals, loading, persistedId, originalStatus, addProduct, 
+    totals, loading, persistedId, orderNumber, originalStatus, addProduct, 
     removeLine, updateLineQty, updateLinePackType, updateLinePrice, 
     resetDraft, currentUser
   ]);

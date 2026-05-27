@@ -11,11 +11,13 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/co
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { 
-  Edit2, Plus, Search, AlertTriangle, Trash2, PackagePlus, FileUp, Zap, 
+  Edit2, Plus, Search, AlertTriangle, Trash2, PackagePlus, FileUp, Zap, X, 
   Loader2, History as HistoryIcon, FileText, ArrowRightLeft, Settings2, 
   IndianRupee as IndianRupeeIcon, Warehouse, ClipboardList, TrendingUp, 
-  Download, Receipt, Sparkles, LucideIcon, Layers, ChevronRight, MoreVertical 
+  Download, Receipt, Sparkles, LucideIcon, Layers, ChevronLeft, ChevronRight, MoreVertical,
+  SlidersHorizontal, Archive, CheckCircle, XCircle
 } from "lucide-react";
+import { motion } from "motion/react";
 import { toast } from "sonner";
 import { friendlyError } from "@/lib/errors";
 import { fmtDate, fmtINR } from "@/lib/format";
@@ -58,6 +60,8 @@ import {
 import { SearchFilterBar } from "@/components/SearchFilterBar";
 import { useFilters } from "@/hooks/useFilters";
 import { PageHeader } from "@/components/PageHeader";
+import { TeleportAction } from "@/components/TeleportAction";
+import { StockTabs } from "@/components/stock/StockTabs";
 import { useInventory } from "@/hooks/useInventory";
 import { useQueryClient } from "@tanstack/react-query";
 import { 
@@ -65,6 +69,7 @@ import {
   AdaptiveTable,
 } from "@/components/ui/responsive-ui";
 import { ListCard } from "@/components/ListCard";
+import { useIsMobile } from "@/lib/responsive";
 
 type Batch = {
   id: string;
@@ -159,6 +164,7 @@ export default function Stock() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const queryClient = useQueryClient();
+  const isMobile = useIsMobile();
   
   const { 
     state, 
@@ -335,7 +341,7 @@ export default function Stock() {
        await supabase.rpc('recompute_inventory', { _product_id: form.product_id });
     }
     
-    toast.success(form.id ? "Batch updated" : "Batch received");
+    toast.success(form.id ? "Stock updated" : "Stock received");
 
     // Sync Price Tiers for new batch
     if (!form.id && payload.landed_cost > 0) {
@@ -419,327 +425,443 @@ export default function Stock() {
   };
 
   return (
-    <div className="flex flex-col space-y-6 md:space-y-8 pb-32 md:pb-24">
+    <div className="pb-32 md:pb-24">
       <PageHeader
-        title="Stock"
-        subtitle="Manage batch-wise inventory and expiry"
+        title="Stocks"
+        titleColor="var(--color-brand-primary)"
         onBack={() => navigate("/")}
-        action={isAdmin && (
-          <div className="flex items-center gap-2">
-            <Button 
-              variant="outline" 
-              size="icon"
-              className="h-10 w-10 md:h-12 md:w-auto md:px-5 rounded-xl border shadow-sm font-bold text-xs gap-2"
-              onClick={async () => {
-                const tid = toast.loading("Reconciling stock...");
-                try {
-                  const { error } = await supabase.rpc('recompute_all_inventory', {});
-                  if (error) throw error;
-                  toast.success("Stock counts synchronized", { id: tid });
-                  refetch();
-                } catch (err: unknown) {
-                  console.error('[Context] Recompute inventory failed', err);
-                  toast.error(friendlyError(err), { id: tid });
-                }
-              }}
-            >
-              <Zap className="h-4 w-4 md:h-3.5 md:w-3.5 opacity-60" />
-              <span className="hidden md:inline">Sync</span>
-            </Button>
-            <Button 
-              className="h-10 px-4 md:h-12 md:px-6 rounded-xl border shadow-brand font-black uppercase tracking-widest text-[10px] gap-2 bg-amber-700 hover:bg-amber-800 text-white"
-              onClick={() => navigate("/stock/grns")}
-            >
-              <Receipt className="h-4 w-4 md:hidden" />
-              <Plus className="h-4 w-4 hidden md:inline" />
-              <span className="md:hidden">GRN</span>
-              <span className="hidden md:inline">Inward GRN</span>
-            </Button>
-          </div>
-        )}
       />
 
-      {/* Summary Stats Grid - 2x2 on mobile */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4 px-4 lg:px-0">
-        <StatCard 
-          label="Total SKUs" 
-          value={grouped.length.toLocaleString()} 
-          color="slate"
-        />
-        <StatCard 
-          label="Expiring Soon" 
-          value={allBatches.filter(b => b.expiry_date && b.expiry_date <= in30 && b.expiry_date >= today).length.toLocaleString()} 
-          color="amber"
-          highlight
-        />
-        <StatCard 
-          label="Total Units" 
-          value={allBatches.reduce((acc, b) => acc + (b.remaining_qty || 0), 0).toLocaleString()} 
-          color="blue"
-        />
-        <StatCard 
-          label="Low Stock" 
-          value={grouped.filter(g => g.total_qty < (g.product?.min_stock || 0)).length.toLocaleString()} 
-          color="red"
-          highlight
-        />
-      </div>
+      <ResponsiveContainer className="space-y-4 md:space-y-6 mt-1 md:mt-4">
+        {/* Top Action Tabs */}
+        <StockTabs />
 
-      {/* Top Action Tabs - Pill style for mobile */}
-      <div className="flex items-center gap-2 w-full overflow-x-auto no-scrollbar px-4 lg:px-0">
-        <StockTab 
-          label="Movement" 
-          isActive={false}
-          onClick={() => navigate("/stock/movement")} 
-        />
-        <StockTab 
-          label="Adjustments" 
-          isActive={false}
-          onClick={() => navigate("/stock/adjustments")} 
-        />
-        <StockTab 
-          label="Relocation" 
-          isActive={false}
-          onClick={() => navigate("/stock/warehouse-transfers")} 
-        />
-        <StockTab 
-          label="Audits" 
-          isActive={false}
-          onClick={() => navigate("/stock/audits")} 
-        />
-        <StockTab 
-          label="Warehouses" 
-          isActive={false}
-          onClick={() => navigate("/stock/warehouses")} 
-        />
-      </div>
-
-      {/* Search & Filters Section */}
-      <div className="space-y-4 px-4 lg:px-0">
-        <div className="flex flex-col md:flex-row items-center gap-2 md:gap-3">
-          <div className="flex-1 w-full relative group">
-            <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 md:h-5 md:w-5 text-slate-400 group-focus-within:text-amber-700 transition-colors" />
-            <Input 
-              placeholder="Name, SKU or Batch..." 
-              className="pl-9 md:pl-12 h-9 md:h-14 rounded-lg md:rounded-2xl border-slate-200 bg-white font-bold text-xs md:text-sm shadow-sm focus:border-amber-700/30 focus:ring-amber-700/5 transition-all w-full" 
-              value={state.search}
-              onChange={(e) => setSearch(e.target.value)}
-            />
-          </div>
-          
-          <div className="flex items-center gap-2 w-full md:w-auto">
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="outline" className="h-9 flex-1 md:h-14 md:w-64 rounded-lg md:rounded-2xl border-slate-200 bg-white shadow-sm flex items-center justify-between px-4 font-bold text-xs md:text-sm gap-2">
-                  <div className="flex items-center gap-2 truncate">
-                    <Warehouse className="h-3.5 w-3.5 text-slate-400" />
-                    <span className="truncate">{selectedWarehouse === "all" ? "All Warehouses" : warehouses.find(w => w.id === selectedWarehouse)?.name}</span>
-                  </div>
-                  <Settings2 className="h-3.5 w-3.5 text-slate-400 shrink-0" />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-64 rounded-2xl p-2 bg-white shadow-2xl border-none">
-                <div className="p-3">
-                  <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-3">Filter by Warehouse</p>
-                  <div className="space-y-1">
-                     <button 
-                      onClick={() => setSelectedWarehouse("all")}
-                      className={cn(
-                        "w-full text-left px-4 py-2.5 rounded-xl text-xs font-bold transition-all",
-                        selectedWarehouse === "all" ? "bg-amber-50 text-amber-900" : "hover:bg-slate-50 text-slate-600"
-                      )}
-                     >
-                       All Warehouses
-                     </button>
-                     {warehouses.map(w => (
-                       <button 
-                        key={w.id}
-                        onClick={() => setSelectedWarehouse(w.id)}
-                        className={cn(
-                          "w-full text-left px-4 py-2.5 rounded-xl text-xs font-bold transition-all",
-                          selectedWarehouse === w.id ? "bg-amber-50 text-amber-900" : "hover:bg-slate-50 text-slate-600"
-                        )}
-                       >
-                         {w.name}
-                       </button>
-                     ))}
-                  </div>
-                </div>
-              </DropdownMenuContent>
-            </DropdownMenu>
-          </div>
-        </div>
-
-        {/* Filter Chips - Active/Expiring/etc */}
-        <div className="flex items-center gap-2 overflow-x-auto no-scrollbar">
-          {['Active', 'Expiring', 'Expired', 'All'].map((tab) => (
-            <button
-              key={tab}
-              onClick={() => setCategory(tab)}
-              className={cn(
-                "h-8 md:h-10 px-4 md:px-6 rounded-lg md:rounded-full text-[10px] md:text-xs font-black uppercase tracking-widest transition-all whitespace-nowrap border",
-                state.category === tab 
-                  ? "bg-amber-50 border-amber-200 text-amber-700 ring-1 ring-amber-700/10" 
-                  : "bg-white border-slate-200 text-slate-500 hover:border-slate-300"
+        {/* Search & Filters Section */}
+        <div className="space-y-4">
+          <div className="flex flex-col md:flex-row items-center gap-2 md:gap-3">
+            <div className="flex-1 w-full relative group">
+              <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground/50 group-focus-within:text-primary transition-colors" />
+              <Input
+                placeholder="Name, SKU or Batch..."
+                className="pl-10 pr-10 h-11 md:h-12 rounded-xl border border-border bg-card font-medium text-sm shadow-sm focus:border-primary/30 focus:ring-0 transition-all w-full"
+                value={state.search}
+                onChange={e => setSearch(e.target.value)}
+              />
+              {state.search && (
+                <button
+                  onClick={() => setSearch("")}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 h-6 w-6 flex items-center justify-center text-muted-foreground/40 hover:text-muted-foreground transition-colors"
+                >
+                  <X className="h-4 w-4" />
+                </button>
               )}
-            >
-              {tab}
-            </button>
-          ))}
-        </div>
-      </div>
+            </div>
 
-      {/* Main Table Section */}
-      <div className="px-4 lg:px-0">
-        <AdaptiveTable
-          data={sortedBatches}
-          isLoading={loadingBatches}
-          emptyMessage="No batches found."
-          onRowClick={(b) => startEdit(b)}
-          columns={[
-            {
-              header: "Product",
-              id: "product",
-              className: "pl-4",
-              render: (b) => {
-                const status = b.expiry_date < today ? 'expired' : b.expiry_date <= in30 ? 'warning' : 'ok';
-                return (
-                  <div className="flex items-center gap-4 py-2">
-                    <div className={cn(
-                      "h-12 w-12 rounded-xl flex items-center justify-center shrink-0 border transition-colors",
-                      status === 'expired' ? "bg-red-50 border-red-100 text-red-500" :
-                      status === 'warning' ? "bg-amber-50 border-amber-100 text-amber-500" :
-                      "bg-slate-50 border-slate-100 text-slate-400"
-                    )}>
-                      <PackagePlus size={20} />
+            <div className="flex items-center gap-2 w-full md:w-auto shrink-0">
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="outline" className="h-11 md:h-12 w-full md:w-64 rounded-xl border border-border bg-card shadow-sm flex items-center justify-between px-4 font-bold text-xs md:text-sm gap-2">
+                    <div className="flex items-center gap-2 truncate">
+                      <Warehouse className="h-4 w-4 text-muted-foreground" />
+                      <span className="truncate">{selectedWarehouse === "all" ? "All Warehouses" : warehouses.find(w => w.id === selectedWarehouse)?.name}</span>
                     </div>
-                    <div className="flex flex-col min-w-0">
-                      <span className="font-bold text-slate-900 leading-tight line-clamp-1">{b.product?.name}</span>
-                      <span className="text-[10px] font-black uppercase tracking-widest text-slate-400 mt-1">{b.product?.sku}</span>
+                    <Settings2 className="h-4 w-4 text-muted-foreground/60 shrink-0" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-[calc(100vw-32px)] md:w-64 rounded-xl p-2 bg-white shadow-2xl border border-border z-50">
+                  <div className="p-3">
+                    <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/60 mb-2.5 block">Filter by Warehouse</p>
+                    <div className="space-y-1">
+                      <button 
+                        onClick={() => setSelectedWarehouse("all")}
+                        className={cn(
+                          "w-full text-left px-4 py-2 rounded-xl text-xs font-bold transition-all",
+                          selectedWarehouse === "all" ? "bg-primary/5 text-primary" : "hover:bg-muted/10 text-muted-foreground"
+                        )}
+                      >
+                        All Warehouses
+                      </button>
+                      {warehouses.map(w => (
+                        <button 
+                          key={w.id}
+                          onClick={() => setSelectedWarehouse(w.id)}
+                          className={cn(
+                            "w-full text-left px-4 py-2 rounded-xl text-xs font-bold transition-all",
+                            selectedWarehouse === w.id ? "bg-primary/5 text-primary" : "hover:bg-muted/10 text-muted-foreground"
+                          )}
+                        >
+                          {w.name}
+                        </button>
+                      ))}
                     </div>
                   </div>
-                );
-              }
-            },
-            {
-              header: "Batch",
-              id: "batch",
-              render: (b) => (
-                <span className="font-bold text-slate-600 text-sm">{b.batch_number}</span>
-              )
-            },
-            {
-              header: "Stock",
-              id: "stock",
-              render: (b) => (
-                <div className="flex flex-col">
-                  <span className="text-base font-black tabular-nums text-slate-900">{b.remaining_qty.toLocaleString()}</span>
-                  <span className="text-[9px] font-bold uppercase tracking-widest text-slate-300">units</span>
-                </div>
-              )
-            },
-            {
-              header: "Expiry",
-              id: "expiry",
-              render: (b) => {
-                const date = new Date(b.expiry_date);
-                const month = date.toLocaleString('default', { month: 'short' });
-                const year = date.getFullYear();
-                const status = b.expiry_date < today ? 'expired' : b.expiry_date <= in30 ? 'warning' : 'ok';
-                
-                return (
-                  <Badge className={cn(
-                    "rounded-full px-3 py-1 font-bold text-[10px] border-none",
-                    status === 'expired' ? "bg-red-100 text-red-700" :
-                    status === 'warning' ? "bg-amber-100 text-amber-700" :
-                    "bg-emerald-100 text-emerald-700"
-                  )}>
-                    {month} {year}
-                  </Badge>
-                );
-              }
-            },
-            {
-              header: "",
-              id: "actions",
-              className: "text-right pr-4",
-              render: (b) => (
-                <div className="flex items-center justify-end gap-2" onClick={e => e.stopPropagation()}>
-                  <Button 
-                    variant="outline" 
-                    size="icon" 
-                    className="h-9 w-9 rounded-xl border-slate-200 bg-white hover:bg-slate-50 transition-all text-slate-400 hover:text-slate-600"
-                    onClick={() => startEdit(b)}
-                  >
-                    <Edit2 size={14} />
-                  </Button>
-                  <Button 
-                    variant="outline" 
-                    size="icon" 
-                    className="h-9 w-9 rounded-xl border-red-50 bg-white hover:bg-red-50 transition-all text-slate-400 hover:text-red-500"
-                    onClick={() => setBatchToDelete(b.id)}
-                  >
-                    <Trash2 size={14} />
-                  </Button>
-                </div>
-              )
-            }
-          ]}
-          renderMobileCard={(b) => {
-            const status = b.expiry_date < today ? 'expired' : b.expiry_date <= in30 ? 'warning' : 'ok';
-            const date = new Date(b.expiry_date);
-            const month = date.toLocaleString('default', { month: 'short' });
-            const year = date.getFullYear();
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </div>
+          </div>
 
-            return (
-              <div 
-                className="p-4 bg-white border border-slate-100 rounded-2xl flex items-center gap-4 active:bg-slate-50 transition-colors shadow-sm relative group"
-                onClick={() => startEdit(b)}
-              >
-                <div className={cn(
-                  "h-11 w-11 rounded-xl flex items-center justify-center shrink-0 border",
-                  status === 'expired' ? "bg-red-50 border-red-100 text-red-400" :
-                  status === 'warning' ? "bg-amber-50 border-amber-100 text-amber-400" :
-                  "bg-slate-50 border-slate-100 text-slate-300"
-                )}>
-                  <PackagePlus size={18} />
-                </div>
-                
-                <div className="flex-1 min-w-0">
-                  <h4 className="text-[13px] font-bold text-slate-900 leading-tight truncate">{b.product?.name}</h4>
-                  <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mt-1">{b.product?.sku}</p>
-                  <div className="flex items-center gap-3 mt-1.5 focus:outline-none">
-                    <span className="text-[11px] font-black text-slate-700 tabular-nums">{b.remaining_qty.toLocaleString()} <span className="text-[9px] text-slate-400 font-bold uppercase tracking-tight ml-0.5">units</span></span>
-                    <Badge className={cn(
-                      "rounded-full px-2 py-0.5 font-bold text-[9px] border-none scale-90 origin-left",
-                      status === 'expired' ? "bg-red-50 text-red-600" :
-                      status === 'warning' ? "bg-amber-50 text-amber-600" :
-                      "bg-emerald-50 text-emerald-600"
-                    )}>
-                      {month} {year}
-                    </Badge>
-                  </div>
-                </div>
-
-                <div className="shrink-0">
-                   <ChevronRight className="w-5 h-5 text-slate-300 group-hover:text-slate-400 transition-colors" />
-                </div>
+          {/* Filter Tabs Consistent with Reports */}
+          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 py-1">
+            <div className="flex-1 w-full bg-white/95 backdrop-blur-md border border-slate-100 rounded-3xl p-1 shadow-sm">
+              <div className="flex items-center justify-between">
+                {[
+                  { id: 'Active', label: 'Active', icon: CheckCircle },
+                  { id: 'Expiring', label: 'Expiring', icon: AlertTriangle },
+                  { id: 'Expired', label: 'Expired', icon: XCircle },
+                  { id: 'All', label: 'All', icon: Layers },
+                ].map((tab) => {
+                  const Icon = tab.icon;
+                  const isActive = state.category === tab.id;
+                  return (
+                    <button
+                      key={tab.id}
+                      onClick={() => setCategory(tab.id)}
+                      className={cn(
+                        "flex flex-col items-center gap-1.5 px-2 pt-2.5 pb-2 transition-all cursor-pointer relative flex-1 focus:outline-none",
+                        isActive ? "opacity-100" : "opacity-50 hover:opacity-100"
+                      )}
+                    >
+                      <Icon className={cn("w-4 h-4", isActive ? "text-primary" : "text-slate-600")} />
+                      <span className={cn(
+                        "text-[9px] sm:text-[10px] font-black uppercase tracking-tight transition-colors",
+                        isActive ? "text-primary" : "text-slate-500"
+                      )}>
+                        {tab.label}
+                      </span>
+                      {isActive && (
+                        <motion.div 
+                          layoutId="activeStockTabPanel"
+                          className="absolute bottom-0 left-2 right-2 h-[2.5px] bg-primary rounded-t-full"
+                          transition={{ type: "spring", bounce: 0.2, duration: 0.6 }}
+                        />
+                      )}
+                    </button>
+                  );
+                })}
               </div>
-            );
-          }}
-        />
-      </div>
+            </div>
 
-      {/* Sticky Footer for Mobile */}
-      {isAdmin && (
-        <div className="fixed bottom-0 left-0 right-0 p-4 bg-white/80 backdrop-blur-xl border-t border-slate-100 md:hidden z-40">
-           <Button 
-            className="w-full h-14 rounded-2xl bg-amber-700 hover:bg-amber-800 text-white font-black uppercase tracking-widest text-xs shadow-xl shadow-amber-900/10 flex items-center justify-center gap-3 active:scale-[0.98] transition-all"
+              {isAdmin && (
+                <div className="hidden md:flex items-center gap-3">
+                  <Button 
+                    variant="outline" 
+                    className="h-10 px-4 rounded-xl border border-slate-200 bg-white text-primary hover:bg-slate-50 font-bold text-xs flex items-center gap-2 active:scale-95 transition-all shadow-sm"
+                    onClick={async () => {
+                      const tid = toast.loading("Checking stock...");
+                      try {
+                        const { error } = await supabase.rpc('recompute_all_inventory', {});
+                        if (error) throw error;
+                        toast.success("Stock counts fixed", { id: tid });
+                        refetch();
+                      } catch (err: unknown) {
+                        console.error('[Context] Recompute inventory failed', err);
+                        toast.error(friendlyError(err), { id: tid });
+                      }
+                    }}
+                  >
+                    <Zap className="h-4 w-4 text-primary fill-primary/10" />
+                    <span>Fix Stocks</span>
+                  </Button>
+                  <Button 
+                    className="h-10 px-4 rounded-xl bg-primary hover:bg-primary/95 text-white font-bold text-xs flex items-center gap-2 active:scale-[0.98] transition-all border-none shadow-sm shadow-primary/10"
+                    onClick={() => navigate("/stock/grns")}
+                  >
+                    <Plus className="h-4 w-4" />
+                    <span>Inward GRN</span>
+                  </Button>
+                </div>
+              )}
+            </div>
+        </div>
+
+        {/* Main Table Section */}
+        {isMobile ? (
+          <div className="space-y-3">
+            {loadingBatches && sortedBatches.length === 0 ? (
+              <div className="space-y-3">
+                {Array.from({ length: 3 }).map((_, i) => (
+                  <div key={i} className="h-28 w-full animate-pulse bg-white rounded-xl border border-slate-100 shadow-[0_2px_8px_rgba(0,0,0,0.015)]" />
+                ))}
+              </div>
+            ) : sortedBatches.length === 0 ? (
+              <div className="bg-white rounded-3xl border border-slate-100 py-12 p-5 text-center shadow-[0_2px_8px_rgba(0,0,0,0.015)]">
+                <p className="text-xs font-black text-slate-400 uppercase tracking-widest leading-none mb-1">List is Empty</p>
+                <p className="text-sm font-semibold text-slate-600 mt-1">No batches found.</p>
+              </div>
+            ) : (
+              <>
+                <div className="space-y-3">
+                  {sortedBatches.map((b) => {
+                    const date = new Date(b.expiry_date);
+                    const month = date.toLocaleString('default', { month: 'short' }).toUpperCase();
+                    const year = date.getFullYear();
+                    const status = b.expiry_date < today ? 'expired' : b.expiry_date <= in30 ? 'warning' : 'ok';
+                    
+                    return (
+                      <div 
+                        key={b.id} 
+                        onClick={() => startEdit(b)}
+                        className="bg-white rounded-3xl border border-slate-50 shadow-[0_4px_16px_rgba(0,0,0,0.015)] hover:shadow-md transition-all cursor-pointer p-4 flex justify-between items-center"
+                      >
+                        {/* Left side: Product */}
+                        <div className="flex items-start gap-3 flex-1 min-w-0 mr-4">
+                          <div className="h-11 w-11 rounded-2xl bg-[#E8EEF5]/40 border border-slate-100 flex items-center justify-center shrink-0 mt-0.5">
+                            <Archive className="h-5 w-5 text-[#5A7E9A] stroke-[1.5]" />
+                          </div>
+                          <div className="flex flex-col min-w-0">
+                            <span className="font-bold text-slate-900 text-[13px] leading-tight block">{b.product?.name}</span>
+                            <span className="text-[10px] font-black uppercase tracking-wider text-slate-400 mt-1 block">{b.product?.sku}</span>
+                            
+                            {/* Units & Expiry Stack under SKU on mobile */}
+                            <div className="flex items-center gap-6 mt-3">
+                              <div className="flex flex-col">
+                                <span className="font-bold text-slate-950 text-[13px] leading-none tracking-tight">
+                                  {b.remaining_qty.toLocaleString()}
+                                </span>
+                                <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mt-1.5 leading-none">
+                                  {b.product ? formatStockBreakdown(b.remaining_qty, b.product) || "UNITS" : "UNITS"}
+                                </span>
+                              </div>
+                              
+                              <div className={cn(
+                                "flex flex-col items-center justify-center px-4 py-1.5 rounded-2xl select-none border border-transparent shadow-[0_2px_8px_rgba(0,0,0,0.02)] transition-all shrink-0",
+                                status === 'expired' ? "bg-red-50 text-red-600" :
+                                status === 'warning' ? "bg-amber-50 text-amber-600" :
+                                "bg-[#E6FDF5]" // Soft light green as in user's design image
+                              )}>
+                                <span className={cn(
+                                  "text-[9px] font-black tracking-wider leading-none",
+                                  status === 'expired' ? "text-red-500" : status === 'warning' ? "text-amber-500" : "text-emerald-500"
+                                )}>{month}</span>
+                                <span className={cn(
+                                  "text-[10px] font-extrabold tracking-tight leading-none mt-0.5",
+                                  status === 'expired' ? "text-red-800" : status === 'warning' ? "text-amber-800" : "text-emerald-850"
+                                )}>{year}</span>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                        
+                        {/* Right side: Batch & Chevron */}
+                        <div className="shrink-0 flex items-center gap-2">
+                          <div className="text-right flex flex-col justify-center items-end min-w-0">
+                            {b.batch_number.includes("-") ? (
+                              <>
+                                <span className="font-bold text-[#556982] text-xs leading-none">
+                                  {b.batch_number.split("-")[0]}
+                                </span>
+                                <span className="font-semibold text-slate-400 text-[10px] mt-1 leading-none select-all uppercase text-right block max-w-[124px] truncate">
+                                  {b.batch_number.substring(b.batch_number.indexOf("-") + 1)}
+                                </span>
+                              </>
+                            ) : (
+                              <span className="font-bold text-[#556982] text-xs leading-none select-all uppercase">
+                                {b.batch_number}
+                              </span>
+                            )}
+                          </div>
+                          <ChevronRight className="h-4 w-4 text-slate-300" />
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+
+                {/* Footer / Pagination Row */}
+                <div className="flex justify-between items-center px-4 py-4 bg-white rounded-3xl border border-slate-100 shadow-[0_2px_8px_rgba(0,0,0,0.015)]">
+                  <span className="text-[11px] font-medium text-slate-400">
+                    Showing 1 to {sortedBatches.length} of {data?.pages[0]?.count ?? sortedBatches.length} entries
+                  </span>
+                  
+                  <div className="flex items-center gap-1.5 shrink-0">
+                    <button 
+                      className="h-7 w-7 rounded-lg border border-slate-150 flex items-center justify-center text-slate-400 hover:bg-slate-50 disabled:opacity-50"
+                      disabled={true}
+                    >
+                      <ChevronLeft className="h-4 w-4" />
+                    </button>
+                    <button className="h-7 w-7 rounded-lg bg-primary text-white font-black text-xs flex items-center justify-center shadow-sm">
+                      1
+                    </button>
+                    <button 
+                      className="h-7 w-7 rounded-lg border border-slate-150 flex items-center justify-center text-slate-400 hover:bg-slate-50 disabled:opacity-50"
+                      disabled={!hasNextPage}
+                      onClick={() => fetchNextPage()}
+                    >
+                      <ChevronRight className="h-4 w-4" />
+                    </button>
+                  </div>
+                </div>
+              </>
+            )}
+          </div>
+        ) : (
+          <AdaptiveTable
+            data={sortedBatches}
+            isLoading={loadingBatches}
+            emptyMessage="No batches found."
+            onRowClick={(b) => startEdit(b)}
+            columns={[
+              {
+                header: "Product",
+                id: "product",
+                className: "pl-4",
+                render: (b) => {
+                  const status = b.expiry_date < today ? 'expired' : b.expiry_date <= in30 ? 'warning' : 'ok';
+                  return (
+                    <div className="flex items-center gap-4 py-2">
+                      <div className={cn(
+                        "h-12 w-12 rounded-[1rem] flex items-center justify-center shrink-0 border transition-colors bg-slate-50 border-slate-100"
+                      )}>
+                        <Layers size={18} className="text-slate-400 stroke-[1.5]" />
+                      </div>
+                      <div className="flex flex-col min-w-0">
+                        <span className="font-bold text-slate-900 leading-tight block">{b.product?.name}</span>
+                        <span className="text-[10px] font-black uppercase tracking-wider text-slate-400 mt-1">{b.product?.sku}</span>
+                      </div>
+                    </div>
+                  );
+                }
+              },
+              {
+                header: "Batch",
+                id: "batch",
+                render: (b) => (
+                  <div className="flex flex-col">
+                    <span className="font-bold text-slate-950 text-sm leading-none">{b.batch_number}</span>
+                    {b.warehouse && (
+                      <span className="text-[10px] font-black uppercase tracking-wider text-slate-400 mt-1.5 flex items-center gap-1 leading-none">
+                        <Warehouse className="h-3 w-3 text-slate-400/80" />
+                        {b.warehouse.name}
+                      </span>
+                    )}
+                  </div>
+                )
+              },
+              {
+                header: "Stock",
+                id: "stock",
+                render: (b) => {
+                  const breakdown = b.product ? formatStockBreakdown(b.remaining_qty, b.product) : "";
+                  return (
+                    <div className="flex flex-col">
+                      <span className="text-base font-black tabular-nums text-slate-950 leading-none">{b.remaining_qty.toLocaleString()}</span>
+                      <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mt-1.5 leading-none">
+                        {breakdown || "UNITS"}
+                      </span>
+                    </div>
+                  );
+                }
+              },
+              {
+                header: "Expiry",
+                id: "expiry",
+                render: (b) => {
+                  const date = new Date(b.expiry_date);
+                  const month = date.toLocaleString('default', { month: 'short' }).toUpperCase();
+                  const year = date.getFullYear();
+                  const status = b.expiry_date < today ? 'expired' : b.expiry_date <= in30 ? 'warning' : 'ok';
+                  
+                  return (
+                    <div className={cn(
+                      "h-12 w-12 rounded-full flex flex-col items-center justify-center shrink-0 select-none border border-transparent shadow-sm transition-all",
+                      status === 'expired' ? "bg-red-50 border-red-100 text-red-600" :
+                      status === 'warning' ? "bg-amber-50 border-amber-100 text-amber-600" :
+                      "bg-emerald-50 border-emerald-100 text-emerald-600"
+                    )}>
+                      <span className={cn(
+                        "text-[9px] font-black tracking-widest leading-none",
+                        status === 'expired' ? "text-red-500" : status === 'warning' ? "text-amber-500" : "text-emerald-500"
+                      )}>{month}</span>
+                      <span className={cn(
+                        "text-[11px] font-extrabold tracking-tight leading-none mt-1.5",
+                        status === 'expired' ? "text-red-800" : status === 'warning' ? "text-amber-800" : "text-emerald-800"
+                      )}>{year}</span>
+                    </div>
+                  );
+                }
+              },
+              {
+                header: "",
+                id: "actions",
+                className: "text-right pr-4",
+                render: (b) => (
+                  <div className="flex items-center justify-end gap-2" onClick={e => e.stopPropagation()}>
+                    <Button 
+                      variant="ghost" 
+                      size="icon" 
+                      className="h-9 w-9 rounded-xl text-slate-400 hover:text-slate-600 hover:bg-slate-50 transition-all"
+                      onClick={() => startEdit(b)}
+                    >
+                      <Edit2 size={14} />
+                    </Button>
+                    <Button 
+                      variant="ghost" 
+                      size="icon" 
+                      className="h-9 w-9 rounded-xl text-slate-400 hover:text-red-500 hover:bg-red-50/50 transition-all animate-in fade-in"
+                      onClick={() => setBatchToDelete(b.id)}
+                    >
+                      <Trash2 size={14} />
+                    </Button>
+                  </div>
+                )
+              }
+            ]}
+            renderMobileCard={(b) => {
+              const status = b.expiry_date < today ? 'expired' : b.expiry_date <= in30 ? 'warning' : 'ok';
+              const date = new Date(b.expiry_date);
+              const month = date.toLocaleString('default', { month: 'short' });
+              const year = date.getFullYear();
+
+              return (
+                <div 
+                  className="p-5 border border-white/20 rounded-3xl glass-card flex items-center gap-4 active:scale-95 transition-all shadow-sm relative group"
+                  onClick={() => startEdit(b)}
+                >
+                  <div className={cn(
+                    "h-11 w-11 rounded-xl flex items-center justify-center shrink-0 border",
+                    status === 'expired' ? "bg-red-50 border-red-100 text-red-400" :
+                    status === 'warning' ? "bg-amber-50 border-amber-100 text-amber-400" :
+                    "bg-slate-50 border-slate-100 text-slate-300"
+                  )}>
+                    <Layers size={18} className="text-slate-400 stroke-[1.5]" />
+                  </div>
+                  
+                  <div className="flex-1 min-w-0">
+                    <h4 className="text-[13px] font-bold text-slate-900 leading-tight">{b.product?.name}</h4>
+                    <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mt-1">{b.product?.sku}</p>
+                    <div className="flex items-center gap-3 mt-1.5 focus:outline-none">
+                      <span className="text-[11px] font-black text-slate-700 tabular-nums">{b.remaining_qty.toLocaleString()} <span className="text-[9px] text-slate-400 font-bold uppercase tracking-tight ml-0.5">units</span></span>
+                      <Badge className={cn(
+                        "rounded-full px-2 py-0.5 font-bold text-[9px] border-none scale-90 origin-left",
+                        status === 'expired' ? "bg-red-50 text-red-600" :
+                        status === 'warning' ? "bg-amber-50 text-amber-600" :
+                        "bg-emerald-50 text-emerald-600"
+                      )}>
+                        {month} {year}
+                      </Badge>
+                    </div>
+                  </div>
+
+                  <div className="shrink-0">
+                     <ChevronRight className="w-5 h-5 text-slate-300 group-hover:text-slate-400 transition-colors" />
+                  </div>
+                </div>
+              );
+            }}
+          />
+        )}
+      </ResponsiveContainer>
+
+      {/* Floating Action Button (FAB) for Mobile instead of full-width sticky footer */}
+      {isMobile && isAdmin && (
+        <div className="fixed top-[74px] right-4 md:hidden z-40 animate-in zoom-in-50 duration-200">
+          <Button 
+            className="h-11 w-11 rounded-full border border-primary/60 text-primary bg-white/45 backdrop-blur-sm hover:bg-primary/5 flex items-center justify-center p-0 active:scale-95 transition-all shadow-[0_4px_12px_rgba(0,0,0,0.04)]"
             onClick={() => navigate("/stock/grns")}
-           >
-             <Receipt className="h-4 w-4" />
-             Inward GRN
-           </Button>
+          >
+            <Plus className="h-5 w-5 stroke-[2.5]" />
+          </Button>
         </div>
       )}
 
@@ -750,17 +872,17 @@ export default function Stock() {
           <div className="h-full flex flex-col focus:outline-none relative">
             <div className="p-8 pb-4 shrink-0 bg-muted/20 border-b border-border/20">
               <SheetHeader className="mb-2 text-left">
-                <SheetTitle className="text-3xl font-black tracking-tighter text-slate-900 leading-none">Modify batch</SheetTitle>
+                <SheetTitle className="text-3xl font-bold tracking-tight text-slate-900 leading-none">Modify Stock</SheetTitle>
                 <div className="flex flex-wrap items-center gap-3 mt-6">
                     {(() => {
                       const p = items_as_products.find(x => x.id === form.product_id);
-                      if (!p) return <span className="text-xs font-medium opacity-30 italic">Hydrating profile...</span>;
+                      if (!p) return <span className="text-xs font-medium opacity-50 italic">Loading...</span>;
                       return (
                         <>
-                           <Badge className="bg-primary hover:bg-primary text-white border-none rounded-lg font-black text-[10px] uppercase tracking-widest px-3 py-1">
+                           <Badge className="bg-primary hover:bg-primary text-white border-none rounded-lg font-bold text-[10px] uppercase tracking-wider px-3 py-1">
                               {p.sku}
                            </Badge>
-                           <h3 className="text-xl font-black tracking-tighter text-foreground leading-none">{p.name}</h3>
+                           <h3 className="text-xl font-bold tracking-tight text-foreground leading-none">{p.name}</h3>
                         </>
                       );
                     })()}
@@ -791,10 +913,10 @@ export default function Stock() {
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2 text-primary">
                      <PackagePlus size={18} />
-                     <Label className="text-[10px] font-black uppercase tracking-[0.2em]">Inventory Correction</Label>
+                     <Label className="text-[10px] font-bold uppercase tracking-wider">Adjustment</Label>
                   </div>
                   {form.product_id && (
-                    <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground opacity-30">
+                    <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground opacity-50">
                       1 {derivePackaging(items_as_products.find(x => x.id === form.product_id)).topUnit} = {derivePackaging(items_as_products.find(x => x.id === form.product_id)).totalItemsInTop} units
                     </span>
                   )}
@@ -849,19 +971,19 @@ export default function Stock() {
                 </div>
               </div>
 
-              <div className="rounded-[2rem] border border-primary/20 bg-primary/[0.02] p-8 space-y-8 shadow-sm">
+              <div className="rounded-[2.5rem] border border-primary/20 bg-primary/[0.02] p-8 space-y-8 shadow-sm">
                 <div className="flex items-center gap-2 text-primary">
                     <IndianRupeeIcon size={18} />
-                    <Label className="text-[10px] font-black uppercase tracking-[0.2em]">Valuation adjustment</Label>
+                    <Label className="text-[10px] font-bold uppercase tracking-wider">Pricing Update</Label>
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                  <Field label={`Landed price / ${derivePackaging(items_as_products.find(x => x.id === form.product_id)).topUnit}`}>
+                  <Field label={`Cost per ${derivePackaging(items_as_products.find(x => x.id === form.product_id)).topUnit}`}>
                     <div className="relative group">
-                      <div className="absolute left-5 top-1/2 -translate-y-1/2 h-6 w-6 text-primary flex items-center justify-center font-black text-xl opacity-30 select-none group-focus-within:opacity-100 transition-opacity">₹</div>
+                      <div className="absolute left-5 top-1/2 -translate-y-1/2 h-6 w-6 text-primary flex items-center justify-center font-bold text-xl opacity-30 select-none group-focus-within:opacity-100 transition-opacity">₹</div>
                       <Input 
                         type="number" 
                         inputMode="decimal"
-                        className="h-20 pl-14 rounded-2xl border-2 border-border/10 bg-white font-black text-3xl text-primary focus-visible:border-primary/50 focus-visible:ring-0 transition-all shadow-sm"
+                        className="h-20 pl-14 rounded-2xl border-2 border-border/10 bg-white font-bold text-3xl text-primary focus-visible:border-primary/50 focus-visible:ring-0 transition-all shadow-sm"
                         value={(() => {
                           const p = items_as_products.find(x => x.id === form.product_id);
                           const info = derivePackaging(p || {});
@@ -879,8 +1001,8 @@ export default function Stock() {
                   </Field>
                   <div className="flex flex-col justify-center">
                     <div className="h-20 p-5 bg-white rounded-2xl border-2 border-dashed border-primary/10 flex flex-col items-center justify-center shadow-sm">
-                      <span className="text-[10px] text-muted-foreground/40 font-black uppercase tracking-widest leading-none mb-1">Base Unit Price</span>
-                      <span className="text-2xl font-black text-primary tracking-tighter leading-none">
+                      <span className="text-[10px] text-muted-foreground/50 font-bold uppercase tracking-wider leading-none mb-1">Price per Piece</span>
+                      <span className="text-2xl font-bold text-primary tracking-tight leading-none">
                         {fmtINR(form.landed_cost)}
                       </span>
                     </div>
@@ -888,20 +1010,20 @@ export default function Stock() {
                 </div>
               </div>
 
-              <Field label="Administrative logs / Audit notes">
+              <Field label="Notes for records">
                 <textarea 
-                  className="w-full h-32 rounded-3xl border-none bg-muted/50 font-bold text-sm p-6 focus-visible:ring-2 focus-visible:ring-primary/20 transition-all resize-none shadow-sm" 
+                  className="w-full h-32 rounded-3xl border-none bg-muted/50 font-medium text-sm p-6 focus-visible:ring-2 focus-visible:ring-primary/20 transition-all resize-none shadow-sm" 
                   value={form.notes} 
                   onChange={(e) => setForm({ ...form, notes: e.target.value })} 
-                  placeholder="Record why this modification was necessary for auditing..."
+                  placeholder="Record why this change was made..."
                 />
               </Field>
             </div>
 
             <div className="p-8 bg-white border-t border-border/20 flex gap-4 shrink-0 mt-auto md:absolute md:bottom-0 md:left-0 md:right-0 z-30">
-              <Button variant="outline" className="h-16 rounded-[2rem] flex-1 font-black uppercase text-[10px] tracking-widest border border-slate-200 text-slate-500 hover:bg-slate-50 transition-all shadow-sm" onClick={() => setEditOpen(false)}>Discard</Button>
-              <Button className="h-16 rounded-[2rem] flex-[2] font-black uppercase text-[10px] tracking-widest shadow-xl shadow-primary/20 bg-primary border-none text-white hover:translate-y-[-2px] transition-all active:translate-y-0" onClick={save}>
-                Finalize Audit
+              <Button variant="outline" className="h-16 rounded-[2rem] flex-1 font-bold uppercase text-[10px] tracking-wider border border-slate-200 text-slate-500 hover:bg-slate-50 transition-all shadow-sm" onClick={() => setEditOpen(false)}>Discard</Button>
+              <Button className="h-16 rounded-[2rem] flex-[2] font-bold uppercase text-[10px] tracking-wider shadow-xl shadow-primary/20 bg-primary border-none text-white hover:translate-y-[-2px] transition-all active:translate-y-0" onClick={save}>
+                Save Changes
               </Button>
             </div>
           </div>
@@ -915,14 +1037,14 @@ export default function Stock() {
               <Trash2 className="h-8 w-8" />
             </div>
             <AlertDialogTitle className="text-2xl font-bold tracking-tight text-slate-900">
-              Expunge Batch Reference?
+              Delete this Batch?
             </AlertDialogTitle>
             <AlertDialogDescription asChild>
               <div className="text-sm text-slate-600 font-medium leading-relaxed">
-                <div className="mb-4">You are about to permanently delete this inventory batch.</div>
+                <div className="mb-4">You are about to permanently delete this inventory records.</div>
                 <div className="p-4 bg-destructive/5 rounded-xl border border-destructive/10 text-destructive">
-                  <div className="text-[10px] font-black uppercase tracking-widest">System Implication</div>
-                  <div className="text-sm font-bold mt-1 italic leading-tight">Total Stock will be recalculated automatically across the catalog.</div>
+                  <div className="text-[10px] font-bold uppercase tracking-wider">What happens?</div>
+                  <div className="text-sm font-semibold mt-1 italic leading-tight">Total Stock counts will be updated across the system.</div>
                 </div>
               </div>
             </AlertDialogDescription>
@@ -956,34 +1078,15 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
   );
 }
 
-function StatCard({ label, value, color, highlight }: { label: string; value: string; color: "slate" | "amber" | "blue" | "red"; highlight?: boolean }) {
-  const colors = {
-    slate: "text-slate-900",
-    amber: "text-amber-600",
-    blue: "text-blue-600",
-    red: "text-red-500"
-  };
-
-  return (
-    <Card className={cn(
-      "rounded-xl md:rounded-2xl border-none p-4 md:p-6 shadow-sm",
-      highlight ? (color === 'red' ? "bg-red-50" : color === 'amber' ? "bg-amber-50" : "bg-white") : "bg-white"
-    )}>
-      <p className="text-[10px] md:text-xs font-bold text-slate-400 uppercase tracking-widest mb-1.5 md:mb-2 leading-tight">{label}</p>
-      <p className={cn("text-xl md:text-3xl font-black tracking-tighter", colors[color])}>{value}</p>
-    </Card>
-  );
-}
-
 function StockTab({ label, isActive, onClick }: { label: string; isActive?: boolean; onClick: () => void }) {
   return (
     <button
       onClick={onClick}
       className={cn(
-        "h-10 md:h-12 px-5 md:px-6 rounded-lg md:rounded-xl border transition-all whitespace-nowrap text-[10px] md:text-[11px] font-black uppercase tracking-widest",
+        "h-10 md:h-12 px-5 md:px-6 rounded-xl border border-white/30 transition-all whitespace-nowrap text-[10px] md:text-[11px] font-black uppercase tracking-widest active:scale-95",
         isActive 
-          ? "bg-amber-50 border-amber-200 text-amber-700 shadow-sm" 
-          : "bg-white border-slate-200 text-slate-500 hover:bg-slate-50"
+          ? "bg-primary text-white shadow-lg shadow-primary/20 scale-[1.05]" 
+          : "glass-card text-foreground hover:bg-white/40"
       )}
     >
       {label}
