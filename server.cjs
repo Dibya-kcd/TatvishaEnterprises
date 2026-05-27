@@ -1,15 +1,39 @@
+var __create = Object.create;
+var __defProp = Object.defineProperty;
+var __getOwnPropDesc = Object.getOwnPropertyDescriptor;
+var __getOwnPropNames = Object.getOwnPropertyNames;
+var __getProtoOf = Object.getPrototypeOf;
+var __hasOwnProp = Object.prototype.hasOwnProperty;
+var __copyProps = (to, from, except, desc) => {
+  if (from && typeof from === "object" || typeof from === "function") {
+    for (let key of __getOwnPropNames(from))
+      if (!__hasOwnProp.call(to, key) && key !== except)
+        __defProp(to, key, { get: () => from[key], enumerable: !(desc = __getOwnPropDesc(from, key)) || desc.enumerable });
+  }
+  return to;
+};
+var __toESM = (mod, isNodeMode, target) => (target = mod != null ? __create(__getProtoOf(mod)) : {}, __copyProps(
+  // If the importer is in node compatibility mode or this is not an ESM
+  // file that has been converted to a CommonJS file using a Babel-
+  // compatible transform (i.e. "__esModule" has not been set), then set
+  // "default" to the CommonJS "module.exports" for node compatibility.
+  isNodeMode || !mod || !mod.__esModule ? __defProp(target, "default", { value: mod, enumerable: true }) : target,
+  mod
+));
+
 // server.ts
-import express from "express";
-import { createServer } from "http";
-import { Server } from "socket.io";
-import { createServer as createViteServer } from "vite";
-import path from "path";
-import { GoogleGenAI } from "@google/genai";
+var import_config = require("dotenv/config");
+var import_express = __toESM(require("express"), 1);
+var import_http = require("http");
+var import_socket = require("socket.io");
+var import_vite = require("vite");
+var import_path = __toESM(require("path"), 1);
+var import_genai = require("@google/genai");
 async function startServer() {
-  const app = express();
-  app.use(express.json({ limit: "10mb" }));
-  const httpServer = createServer(app);
-  const io = new Server(httpServer, {
+  const app = (0, import_express.default)();
+  app.use(import_express.default.json({ limit: "10mb" }));
+  const httpServer = (0, import_http.createServer)(app);
+  const io = new import_socket.Server(httpServer, {
     cors: {
       origin: "*",
       methods: ["GET", "POST"]
@@ -24,7 +48,7 @@ async function startServer() {
         res.status(503).json({ error: "AI generation is not configured" });
         return;
       }
-      const genAI = new GoogleGenAI({ apiKey });
+      const genAI = new import_genai.GoogleGenAI({ apiKey });
       const { prompt, fileData, mimeType } = req.body;
       const contents = fileData ? [
         {
@@ -79,17 +103,17 @@ async function startServer() {
       console.log("User disconnected:", socket.id);
     });
   });
-  if (process.env.NODE_ENV === "development") {
-    const vite = await createViteServer({
+  if (process.env.NODE_ENV !== "production") {
+    const vite = await (0, import_vite.createServer)({
       server: { middlewareMode: true },
       appType: "spa"
     });
     app.use(vite.middlewares);
   } else {
-    const distPath = path.join(process.cwd(), "dist");
-    app.use(express.static(distPath));
-    app.use((req, res) => {
-      res.sendFile(path.join(distPath, "index.html"));
+    const distPath = import_path.default.join(process.cwd(), "dist");
+    app.use(import_express.default.static(distPath));
+    app.get("*", (req, res) => {
+      res.sendFile(import_path.default.join(distPath, "index.html"));
     });
   }
   httpServer.listen(PORT, "0.0.0.0", () => {
@@ -97,4 +121,4 @@ async function startServer() {
   });
 }
 startServer();
-//# sourceMappingURL=server.mjs.map
+//# sourceMappingURL=server.cjs.map
