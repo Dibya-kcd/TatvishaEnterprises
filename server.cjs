@@ -28,6 +28,7 @@ var import_http = require("http");
 var import_socket = require("socket.io");
 var import_vite = require("vite");
 var import_path = __toESM(require("path"), 1);
+var import_promises = __toESM(require("fs/promises"), 1);
 var import_genai = require("@google/genai");
 async function startServer() {
   const app = (0, import_express.default)();
@@ -103,16 +104,33 @@ async function startServer() {
       console.log("User disconnected:", socket.id);
     });
   });
-  if (process.env.NODE_ENV !== "production") {
+  const isProduction = process.env.NODE_ENV === "production";
+  if (!isProduction) {
     const vite = await (0, import_vite.createServer)({
       server: { middlewareMode: true },
-      appType: "spa"
+      appType: "custom"
     });
     app.use(vite.middlewares);
+    app.get("*any", async (req, res, next) => {
+      if (req.originalUrl.startsWith("/api")) {
+        return next();
+      }
+      try {
+        const url = req.originalUrl;
+        let template = await import_promises.default.readFile(import_path.default.resolve(process.cwd(), "index.html"), "utf-8");
+        template = await vite.transformIndexHtml(url, template);
+        res.status(200).set({ "Content-Type": "text/html" }).end(template);
+      } catch (e) {
+        if (e instanceof Error) {
+          vite.ssrFixStacktrace(e);
+        }
+        next(e);
+      }
+    });
   } else {
     const distPath = import_path.default.join(process.cwd(), "dist");
     app.use(import_express.default.static(distPath));
-    app.get("*", (req, res) => {
+    app.get("*any", (req, res) => {
       res.sendFile(import_path.default.join(distPath, "index.html"));
     });
   }
