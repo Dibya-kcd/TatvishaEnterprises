@@ -4,6 +4,7 @@ import { createServer } from 'http';
 import { Server } from 'socket.io';
 import { createServer as createViteServer } from 'vite';
 import path from 'path';
+import fs from 'fs/promises';
 import { GoogleGenAI } from '@google/genai';
 
 async function startServer() {
@@ -104,17 +105,37 @@ async function startServer() {
     });
   });
 
+  const isProduction = process.env.NODE_ENV === 'production';
+
   // Vite middleware for development
-  if (process.env.NODE_ENV !== 'production') {
+  if (!isProduction) {
     const vite = await createViteServer({
       server: { middlewareMode: true },
-      appType: 'spa',
+      appType: 'custom',
     });
     app.use(vite.middlewares);
+
+    app.get('*any', async (req, res, next) => {
+      if (req.originalUrl.startsWith('/api')) {
+        return next();
+      }
+
+      try {
+        const url = req.originalUrl;
+        let template = await fs.readFile(path.resolve(process.cwd(), 'index.html'), 'utf-8');
+        template = await vite.transformIndexHtml(url, template);
+        res.status(200).set({ 'Content-Type': 'text/html' }).end(template);
+      } catch (e) {
+        if (e instanceof Error) {
+          vite.ssrFixStacktrace(e);
+        }
+        next(e);
+      }
+    });
   } else {
     const distPath = path.join(process.cwd(), 'dist');
     app.use(express.static(distPath));
-    app.get('*', (req, res) => {
+    app.get('*any', (req, res) => {
       res.sendFile(path.join(distPath, 'index.html'));
     });
   }
