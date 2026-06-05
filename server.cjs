@@ -103,7 +103,8 @@ async function startServer() {
       console.log("User disconnected:", socket.id);
     });
   });
-  if (process.env.NODE_ENV !== "production") {
+  const isProduction = process.env.NODE_ENV === "production";
+  if (!isProduction) {
     const vite = await (0, import_vite.createServer)({
       server: { middlewareMode: true },
       appType: "spa"
@@ -112,7 +113,7 @@ async function startServer() {
   } else {
     const distPath = import_path.default.join(process.cwd(), "dist");
     app.use(import_express.default.static(distPath));
-    app.get("*", (req, res) => {
+    app.use((req, res) => {
       res.sendFile(import_path.default.join(distPath, "index.html"));
     });
   }
