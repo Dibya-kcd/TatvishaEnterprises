@@ -202,7 +202,7 @@ export function useReportsData() {
             upp: p.units_per_packet || 1,
             ppc: p.packets_per_case || 1,
             psv: p.pack_size_value || 0,
-            psu: p.pack_size_unit || 'g'
+            psu: p.pack_size_unit || ''
           }
         });
       });
@@ -231,7 +231,7 @@ export function useReportsData() {
               upp: item.product_units_per_packet || 1,
               ppc: item.product_packets_per_case || 1,
               psv: item.product_pack_size_value || 0,
-              psu: item.product_pack_size_unit || 'g'
+              psu: item.product_pack_size_unit || ''
             }
           });
         }
@@ -249,15 +249,19 @@ export function useReportsData() {
         const packets = Math.floor(remAfterCases / upp);
         const units = Math.floor(remAfterCases % upp); // Use Math.floor to ensure number
         
-        let weightStr = '0';
-        if (item._conv.psv > 0) {
+        let weightStr = '—';
+        const psu = (item._conv.psu || '').toLowerCase().trim();
+        const isWeightUnit = ['g', 'gm', 'gms', 'grams', 'kg', 'kilogram', 'kilograms', 'ml', 'ltr', 'l', 'litre', 'litres'].includes(psu);
+
+        if (item._conv.psv > 0 && isWeightUnit) {
           const totalWeightUnits = item.base_qty * item._conv.psv;
-          const psu = (item._conv.psu || 'g').toLowerCase();
           if (psu === 'g' || psu === 'ml') {
             weightStr = (totalWeightUnits / 1000).toFixed(2) + (psu === 'g' ? ' kg' : ' L');
           } else {
-            weightStr = totalWeightUnits.toFixed(2) + ' ' + psu;
+            weightStr = totalWeightUnits.toFixed(2) + ' ' + (item._conv.psu || 'kg');
           }
+        } else {
+          weightStr = '—';
         }
  
         return { 

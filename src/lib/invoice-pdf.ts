@@ -2,6 +2,7 @@ import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 import { fmtDate, fmtINR, formatPackLabel } from "./format";
 import { Database } from "@/integrations/supabase/types";
+import { COMPANY_NAME, COMPANY_TAGLINE } from "@/lib/config";
 
 type Invoice = Database["public"]["Tables"]["invoices"]["Row"];
 type Shop = Database["public"]["Tables"]["shops"]["Row"];
@@ -41,11 +42,11 @@ export async function generateInvoicePDF({ invoice, order, shop, items, format =
   if (isThermal) {
     doc.setFontSize(14);
     doc.setFont("helvetica", "bold");
-    doc.text("BHARAT MASALA", pageWidth / 2, 12, { align: "center" });
+    doc.text(COMPANY_NAME, pageWidth / 2, 12, { align: "center" });
     
     doc.setFontSize(8);
     doc.setFont("helvetica", "normal");
-    doc.text("Quality Spices & Condiments", pageWidth / 2, 17, { align: "center" });
+    doc.text(COMPANY_TAGLINE, pageWidth / 2, 17, { align: "center" });
     
     doc.setFontSize(10);
     doc.setFont("helvetica", "bold");
@@ -60,12 +61,12 @@ export async function generateInvoicePDF({ invoice, order, shop, items, format =
     doc.setFontSize(20);
     doc.setTextColor(44, 62, 80);
     doc.setFont("helvetica", "bold");
-    doc.text("BHARAT MASALA", 14, 22);
+    doc.text(COMPANY_NAME, 14, 22);
     
     doc.setFontSize(10);
     doc.setTextColor(127, 140, 141);
     doc.setFont("helvetica", "normal");
-    doc.text("Quality Spices & Condiments", 14, 28);
+    doc.text(COMPANY_TAGLINE, 14, 28);
     
     doc.setFontSize(14);
     doc.setTextColor(44, 62, 80);

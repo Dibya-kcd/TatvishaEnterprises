@@ -1,6 +1,7 @@
 import * as React from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
+import { COMPANY_NAME, COMPANY_TAGLINE } from "@/lib/config";
 import { useAuth } from "@/context/AuthContextCore";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -653,8 +654,8 @@ export default function OrderDetail() {
     if (!order || !invoice) return;
     
     const thermalData: ThermalInvoiceData = {
-      businessName: "BHARAT MASALA",
-      businessTagline: "Quality Spices & Condiments",
+      businessName: COMPANY_NAME,
+      businessTagline: COMPANY_TAGLINE,
       memoNumber: invoice.invoice_number,
       date: fmtDate(invoice.created_at),
       orderNumber: order.order_number,

@@ -7,12 +7,13 @@ import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Input } from "@/components/ui/input";
-import { Save, CheckCircle, ArrowLeft, Warehouse as WarehouseIcon, AlertCircle, LayoutGrid, List, ChevronLeft, ChevronRight, Calculator } from "lucide-react";
+import { Save, CheckCircle, ArrowLeft, Warehouse as WarehouseIcon, AlertCircle, LayoutGrid, List, ChevronLeft, ChevronRight, Calculator, RefreshCw } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 import { toast } from "sonner";
 import { friendlyError } from "@/lib/errors";
 import { Product, StockAudit, Warehouse as WarehouseType, Batch, StockAuditItem } from "@/types";
 import { StockBreakdownDisplay } from "@/components/StockBreakdownDisplay";
+import { convertToBaseUnits } from "@/lib/packaging";
 import { cn } from "@/lib/utils";
 
 export default function StockAuditDetail() {
@@ -21,9 +22,11 @@ export default function StockAuditDetail() {
   const { user, isAdmin } = useAuth();
   const [audit, setAudit] = useState<(StockAudit & { warehouses: WarehouseType }) | null>(null);
   const [items, setItems] = useState<StockAuditItem[]>([]);
+  const [allocations, setAllocations] = useState<Record<string, { baseQty: number, orders: { order_number: string, status: string, qty: number, pack_type: string }[] }>>({});
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [finalizing, setFinalizing] = useState(false);
+  const [syncingStock, setSyncingStock] = useState(false);
   
   const [viewMode, setViewMode] = useState<"table" | "swipe">("table");
   const [currentIndex, setCurrentIndex] = useState(0);
@@ -73,6 +76,50 @@ export default function StockAuditDetail() {
         product: prodMap.get(i.product_id) || null,
         batch: batchMap.get(i.batch_id) || null
       })) as unknown as StockAuditItem[]);
+
+      // Fetch un-dispatched order allocations for these products
+      const orderItemAllocations: Record<string, { baseQty: number, orders: { order_number: string, status: string, qty: number, pack_type: string }[] }> = {};
+      try {
+        const { data: rawOrderItems, error: oiError } = await supabase
+          .from("order_items")
+          .select("order_id, product_id, quantity, pack_type")
+          .in("product_id", pids);
+
+        if (!oiError && rawOrderItems && rawOrderItems.length > 0) {
+          const orderIds = Array.from(new Set(rawOrderItems.map(o => o.order_id)));
+          const { data: activeOrders } = await supabase
+            .from("orders")
+            .select("id, order_number, status, warehouse_id")
+            .in("id", orderIds)
+            .in("status", ["approved", "pending_approval"]);
+
+          if (activeOrders && activeOrders.length > 0) {
+            const activeOrderMap = new Map(activeOrders.map(o => [o.id, o]));
+            rawOrderItems.forEach(oi => {
+              const ord = activeOrderMap.get(oi.order_id);
+              if (ord && ord.warehouse_id === wid) {
+                const prod = prodMap.get(oi.product_id);
+                if (prod) {
+                  const baseQty = convertToBaseUnits(oi.quantity, oi.pack_type, prod as unknown as Product);
+                  if (!orderItemAllocations[oi.product_id]) {
+                    orderItemAllocations[oi.product_id] = { baseQty: 0, orders: [] };
+                  }
+                  orderItemAllocations[oi.product_id].baseQty += baseQty;
+                  orderItemAllocations[oi.product_id].orders.push({
+                    order_number: ord.order_number,
+                    status: ord.status,
+                    qty: oi.quantity,
+                    pack_type: oi.pack_type
+                  });
+                }
+              }
+            });
+          }
+        }
+      } catch (err) {
+        console.error("Error computing order allocations:", err);
+      }
+      setAllocations(orderItemAllocations);
     } catch (err: unknown) {
       console.error('[Context] Fetch audit data failed', err);
       toast.error(friendlyError(err));
@@ -101,8 +148,13 @@ export default function StockAuditDetail() {
     try {
       const updates = items.map((item) => ({
         id: item.id,
+        audit_id: item.audit_id,
+        product_id: item.product_id,
+        batch_id: item.batch_id,
+        system_qty: item.system_qty,
         physical_qty: item.physical_qty,
-        notes: item.notes,
+        notes: item.notes || null,
+        created_at: item.created_at,
       }));
 
       const { error } = await supabase.from("stock_audit_items").upsert(updates);
@@ -114,6 +166,82 @@ export default function StockAuditDetail() {
       toast.error(friendlyError(err));
     } finally {
       setSaving(false);
+    }
+  };
+
+  const syncSystemStock = async () => {
+    if (!audit) return;
+    setSyncingStock(true);
+    try {
+      // 1. Fetch latest batches in this warehouse
+      const { data: latestBatches, error: batchError } = await supabase
+        .from("inventory_batches")
+        .select("*")
+        .eq("warehouse_id", audit.warehouse_id);
+
+      if (batchError) throw batchError;
+
+      const latestBatchMap = new Map(latestBatches?.map(b => [b.id, b]) || []);
+      const existingBatchIds = new Set(items.map(i => i.batch_id));
+
+      const updatedItems = items.map((item) => {
+        const batch = latestBatchMap.get(item.batch_id);
+        const latestQty = batch ? Number(batch.remaining_qty) : 0;
+        return {
+          id: item.id,
+          audit_id: item.audit_id,
+          product_id: item.product_id,
+          batch_id: item.batch_id,
+          system_qty: latestQty,
+          physical_qty: item.physical_qty,
+          notes: item.notes || null,
+          created_at: item.created_at,
+        };
+      });
+
+      const newItemsToInsert: {
+        audit_id: string;
+        product_id: string;
+        batch_id: string;
+        system_qty: number;
+        physical_qty: number | null;
+        notes: string | null;
+      }[] = [];
+      for (const batch of latestBatches || []) {
+        if (!existingBatchIds.has(batch.id) && Number(batch.remaining_qty) > 0) {
+          newItemsToInsert.push({
+            audit_id: id || "",
+            product_id: batch.product_id,
+            batch_id: batch.id,
+            system_qty: Number(batch.remaining_qty),
+            physical_qty: null,
+            notes: null
+          });
+        }
+      }
+
+      // Upsert existing items
+      const { error: upsertError } = await supabase
+        .from("stock_audit_items")
+        .upsert(updatedItems);
+      if (upsertError) throw upsertError;
+
+      // Insert new items if any
+      if (newItemsToInsert.length > 0) {
+        const { error: insertError } = await supabase
+          .from("stock_audit_items")
+          .insert(newItemsToInsert);
+        if (insertError) throw insertError;
+      }
+
+      // Reload all data so that we get latest products, batches, and calculated variances from DB
+      await fetchAuditData();
+      toast.success("System stock counts successfully synchronized with live warehouse inventory!");
+    } catch (err: unknown) {
+      console.error('[Context] Sync stock failed', err);
+      toast.error(friendlyError(err));
+    } finally {
+      setSyncingStock(false);
     }
   };
 
@@ -133,7 +261,22 @@ export default function StockAuditDetail() {
 
     setFinalizing(true);
     try {
-      // 1. Prepare items for atomic reconciliation
+      // 1. Auto-save current state to ensure stock_audit_items has physical quantities in database
+      const updates = items.map((item) => ({
+        id: item.id,
+        audit_id: item.audit_id,
+        product_id: item.product_id,
+        batch_id: item.batch_id,
+        system_qty: item.system_qty,
+        physical_qty: item.physical_qty,
+        notes: item.notes || null,
+        created_at: item.created_at,
+      }));
+
+      const { error: saveError } = await supabase.from("stock_audit_items").upsert(updates);
+      if (saveError) throw saveError;
+
+      // 2. Prepare items for atomic reconciliation
       const auditPayload = items
         .filter((i) => i.variance !== 0 && i.variance !== null)
         .map((item) => ({
@@ -153,7 +296,7 @@ export default function StockAuditDetail() {
         if (rpcError) throw rpcError;
       }
 
-      // 2. Update audit status
+      // 3. Update audit status
       const { error: statusError } = await supabase
         .from("stock_audits")
         .update({
@@ -261,6 +404,16 @@ export default function StockAuditDetail() {
             </div>
             
             <div className="flex items-center gap-3">
+              <Button 
+                variant="outline" 
+                onClick={syncSystemStock} 
+                disabled={syncingStock} 
+                className="h-12 px-6 rounded-xl font-bold border-2 border-dashed border-amber-300 bg-amber-50/50 hover:bg-amber-50 hover:border-amber-400 text-amber-700 transition-colors"
+                title="Sync system stock snapshot with current active warehouse stock"
+              >
+                <RefreshCw className={cn("h-4 w-4 mr-2", syncingStock && "animate-spin")} />
+                {syncingStock ? "Syncing..." : "Sync Stock"}
+              </Button>
               <Button variant="outline" onClick={saveDraft} disabled={saving} className="h-12 px-6 rounded-xl font-bold border-2">
                 <Save className="h-4 w-4 mr-2" />
                 {saving ? "Saving..." : "Save Draft"}
@@ -340,38 +493,51 @@ export default function StockAuditDetail() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {items.map((item) => (
-                  <TableRow key={item.id} className="font-medium h-20">
-                    <TableCell className="pl-6">
-                      <div className="flex flex-col gap-1">
-                        <span className="font-bold text-sm uppercase">{item.product?.name}</span>
-                        <div className="flex items-center gap-2">
-                          <Badge variant="outline" className="rounded-md font-mono text-[9px] uppercase px-1.5 py-0">#{item.batch?.batch_number}</Badge>
-                          <StockBreakdownDisplay 
-                            stockBaseUnits={item.system_qty} 
-                            product={item.product as Product} 
-                            variant="compact" 
-                            className="text-[9px] opacity-60"
-                          />
+                {items.map((item) => {
+                  const allocated = allocations[item.product_id];
+                  const matchAlloc = allocated && item.variance !== null && item.variance === -allocated.baseQty;
+                  return (
+                    <TableRow key={item.id} className="font-medium h-20">
+                      <TableCell className="pl-6 py-3">
+                        <div className="flex flex-col gap-1">
+                          <span className="font-bold text-sm uppercase">{item.product?.name}</span>
+                          <div className="flex flex-wrap items-center gap-2">
+                            <Badge variant="outline" className="rounded-md font-mono text-[9px] uppercase px-1.5 py-0">#{item.batch?.batch_number}</Badge>
+                            <StockBreakdownDisplay 
+                              stockBaseUnits={item.system_qty} 
+                              product={item.product as Product} 
+                              variant="compact" 
+                              className="text-[9px] opacity-60"
+                            />
+                            {allocated && allocated.baseQty > 0 && (
+                              <Badge variant="secondary" className="bg-amber-50 text-amber-700 border-amber-100 rounded-md text-[9px] font-bold px-1.5 py-0">
+                                📦 {allocated.baseQty} Pending Dispatch
+                              </Badge>
+                            )}
+                            {matchAlloc && (
+                              <span className="text-[10px] font-extrabold uppercase text-emerald-600 bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-100 flex items-center gap-1">
+                                ✨ Matches Allocated Orders Qty
+                              </span>
+                            )}
+                          </div>
                         </div>
-                      </div>
-                    </TableCell>
-                    <TableCell className="text-center font-mono font-bold text-slate-500">
-                      {item.system_qty}
-                    </TableCell>
-                    <TableCell className="text-center">
-                      {isCompleted ? (
-                        <span className="font-black text-lg">{item.physical_qty}</span>
-                      ) : (
-                        <Input 
-                          type="number" 
-                          inputMode="decimal"
-                          value={item.physical_qty ?? ""}
-                          onChange={(e) => updatePhysicalQty(item.id, e.target.value)}
-                          className="h-11 md:h-10 text-center font-black text-lg rounded-xl border-2 bg-muted/20 focus:ring-brand-primary/20"
-                          placeholder="0"
-                        />
-                      )}
+                      </TableCell>
+                      <TableCell className="text-center font-mono font-bold text-slate-500">
+                        {item.system_qty}
+                      </TableCell>
+                      <TableCell className="text-center">
+                        {isCompleted ? (
+                          <span className="font-black text-lg">{item.physical_qty}</span>
+                        ) : (
+                          <Input 
+                            type="number" 
+                            inputMode="decimal"
+                            value={item.physical_qty ?? ""}
+                            onChange={(e) => updatePhysicalQty(item.id, e.target.value)}
+                            className="h-11 md:h-10 text-center font-black text-lg rounded-xl border-2 bg-muted/20 focus:ring-brand-primary/20"
+                            placeholder="0"
+                          />
+                        )}
                     </TableCell>
                     <TableCell className="text-right pr-6">
                       {item.variance !== null && (
@@ -394,7 +560,8 @@ export default function StockAuditDetail() {
                       )}
                     </TableCell>
                   </TableRow>
-                ))}
+                  );
+                })}
               </TableBody>
             </Table>
           ) : (
@@ -436,6 +603,23 @@ export default function StockAuditDetail() {
                           System: {currentItem?.system_qty}
                         </Badge>
                       </div>
+                      {(() => {
+                        const currentAllocated = currentItem ? allocations[currentItem.product_id] : null;
+                        const currentMatchAlloc = currentAllocated && currentItem && currentItem.variance !== null && currentItem.variance === -currentAllocated.baseQty;
+                        if (!currentAllocated || currentAllocated.baseQty <= 0) return null;
+                        return (
+                          <div className="mt-3 flex flex-col items-center gap-1.5">
+                            <Badge variant="secondary" className="bg-amber-50 text-amber-700 border-amber-100 rounded-xl px-3 py-1 font-bold text-xs uppercase">
+                              📦 {currentAllocated.baseQty} Units Pending Dispatch
+                            </Badge>
+                            {currentMatchAlloc && (
+                              <div className="text-[11px] font-extrabold uppercase text-emerald-600 bg-emerald-50 px-3 py-1 rounded-xl border border-emerald-100 flex items-center gap-1.5">
+                                ✨ Matches Allocated Orders Qty
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })()}
                     </div>
 
                     <div className="w-full max-w-xs space-y-4">

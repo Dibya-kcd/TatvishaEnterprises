@@ -7,6 +7,21 @@ import { fmtINR } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import { StockBreakdownDisplay } from "@/components/StockBreakdownDisplay";
 
+function getCategoryColor(cat?: string | null): string {
+  const c = (cat || "").toLowerCase();
+  if (c.includes("spice")) return "bg-orange-50 text-orange-600";
+  if (c.includes("beverage") || c.includes("drink")) return "bg-blue-50 text-blue-600";
+  if (c.includes("dairy") || c.includes("milk")) return "bg-sky-50 text-sky-700";
+  if (c.includes("snack") || c.includes("namkeen")) return "bg-yellow-50 text-yellow-700";
+  if (c.includes("oil") || c.includes("ghee")) return "bg-amber-50 text-amber-700";
+  if (c.includes("pulse") || c.includes("dal")) return "bg-emerald-50 text-emerald-600";
+  if (c.includes("flour") || c.includes("grain")) return "bg-stone-100 text-stone-600";
+  if (c.includes("sauce") || c.includes("condiment") || c.includes("ketchup")) return "bg-red-50 text-red-600";
+  if (c.includes("personal") || c.includes("care")) return "bg-pink-50 text-pink-600";
+  if (c.includes("household")) return "bg-violet-50 text-violet-600";
+  return "bg-slate-100 text-slate-600";
+}
+
 interface ProductTableRowProps {
   product: Product;
   onClick: () => void;
@@ -27,9 +42,7 @@ export const ProductTableRow = ({ product: p, onClick }: ProductTableRowProps) =
       {/* TE Logo / Brand Icon */}
       <div className={cn(
         "h-14 w-14 rounded-2xl flex items-center justify-center text-xs font-black shadow-inner shrink-0 transition-all group-hover:rotate-3 group-hover:scale-105",
-        p.division_category?.toLowerCase().includes("spice") ? "bg-orange-50 text-orange-600" : 
-        p.division_category?.toLowerCase().includes("pulse") ? "bg-emerald-50 text-emerald-600" : 
-        "bg-slate-100 text-slate-600",
+        getCategoryColor(p.division_category)
       )}>
         {p.brand === "TE" || p.brand === "BM" || !p.brand ? "TE" : p.brand.substring(0, 2).toUpperCase()}
       </div>

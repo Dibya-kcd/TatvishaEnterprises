@@ -90,6 +90,7 @@ export default function NewOrder() {
     persistedId,
     orderNumber,
     originalStatus,
+    salespersonId,
     addProduct,
     removeLine,
     updateLineQty,
@@ -486,6 +487,7 @@ export default function NewOrder() {
       const orderData = {
         shop_id: shopId,
         warehouse_id: warehouseId,
+        salesperson_id: salespersonId || currentUser?.id,
         status: finalStatus as Database["public"]["Enums"]["order_status"],
         subtotal: totals.subtotal,
         gst_total: totals.gst,
@@ -518,6 +520,7 @@ export default function NewOrder() {
         const orderPayload = {
           shop_id: shopId,
           warehouse_id: warehouseId,
+          salesperson_id: salespersonId || currentUser?.id,
           status: finalStatus,
           subtotal: totals.subtotal,
           gst_total: totals.gst,
@@ -530,7 +533,7 @@ export default function NewOrder() {
           updated_at: new Date().toISOString()
         };
 
-        const { data: resultId, error: rpcError } = await supabase.rpc('save_draft_order_v3', {
+        const { data: resultId, error: rpcError } = await supabase.rpc('save_draft_order_v4', {
           p_order_id: editId || null,
           p_order_data: orderPayload,
           p_items: itemsData

@@ -1,6 +1,7 @@
 import * as React from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { Card, CardContent } from "@/components/ui/card";
+import { COMPANY_NAME, COMPANY_TAGLINE } from "@/lib/config";
 import { Search, ClipboardList, Settings2, Trash2, Calendar, Loader2, FileText, ChevronRight, Printer } from "lucide-react";
 import { fmtDate, fmtINR, fmtCompactINR, payStatusLabel, formatPackLabel } from "@/lib/format";
 import { toast } from "sonner";
@@ -112,7 +113,7 @@ export default function Invoices() {
         
         if (items && order) {
           const thermalData: ThermalInvoiceData = {
-            businessName: "BHARAT MASALA",
+            businessName: COMPANY_NAME,
             businessTagline: "Bulk Print Run",
             memoNumber: inv.invoice_number,
             date: fmtDate(inv.created_at),
@@ -173,8 +174,8 @@ export default function Invoices() {
 
       // 3. Format for thermal printer
       const thermalData: ThermalInvoiceData = {
-        businessName: "BHARAT MASALA",
-        businessTagline: "Quality Spices & Condiments",
+        businessName: COMPANY_NAME,
+        businessTagline: COMPANY_TAGLINE,
         memoNumber: inv.invoice_number,
         date: fmtDate(inv.created_at),
         orderNumber: inv.order_number,

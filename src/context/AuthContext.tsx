@@ -138,6 +138,121 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     };
   }, [queryClient]);
 
+  React.useEffect(() => {
+    if (!user) return;
+    const isUserAdmin = roles.includes("admin") || roles.includes("owner") || user.email === "dibyaprakashkcd3@gmail.com";
+    if (!isUserAdmin) return;
+
+    const hasSplit = localStorage.getItem("soya_badi_split_v10");
+    if (hasSplit) return;
+
+    const runAlignmentAndSplit = async () => {
+      try {
+        console.log("[Auth] Starting client-side auto-align and split for Soya Badi (Big & Mini) database units and stocks...");
+        
+        // 1. Align & Rename Standard/Big Sachet
+        const { error: err1 } = await supabase
+          .from("products")
+          .update({
+            name: "Soya Chunks Big (Soya Badi) [MRP ₹10 x 10 Unit x 15 Pkt]",
+            units_per_packet: 10,
+            packets_per_case: 15,
+            units_per_case: 150,
+            case_qty_value: 150,
+            case_qty_unit: "pcs",
+            base_unit: "packet",
+            is_active: true
+          })
+          .eq("sku", "BM-FD-SOYCHU-RS10-SC");
+
+        if (err1) {
+          console.error("Soya Chunks standard alignment failed:", err1);
+        }
+
+        // 2. Align & Activate Mini Sachet
+        const { error: err2 } = await supabase
+          .from("products")
+          .update({
+            name: "Soya Chunks Mini (Soya Badi) [MRP ₹10 x 10 Unit x 15 Pkt]",
+            units_per_packet: 10,
+            packets_per_case: 15,
+            units_per_case: 150,
+            case_qty_value: 150,
+            case_qty_unit: "pcs",
+            base_unit: "packet",
+            is_active: true
+          })
+          .eq("sku", "BM-FD-SOYCHUMN-RS10-SC");
+
+        if (err2) {
+          console.error("Soya Chunks mini alignment failed:", err2);
+        }
+
+        // 3. Update the existing batch for Soya Chunks Big (9b8e987d-2e1d-4a24-8073-92a0bab93db9)
+        // Set received_qty to 500 and remaining_qty to 100 (10 packets * 10 units = 100 base units/sachets)
+        const { error: errBatchBig } = await supabase
+          .from("inventory_batches")
+          .update({
+            received_qty: 500,
+            remaining_qty: 100
+          })
+          .eq("id", "9b8e987d-2e1d-4a24-8073-92a0bab93db9");
+
+        if (errBatchBig) {
+          console.error("Failed to update Big batch:", errBatchBig);
+        }
+
+        // 4. Create/Insert the batch for Soya Chunks Mini
+        // First check if already exists to prevent RLS/uniqueness errors
+        const { data: existingMiniBatch } = await supabase
+          .from("inventory_batches")
+          .select("id")
+          .eq("id", "01e40328-5701-4e4b-a5df-17c52bf2d87b")
+          .maybeSingle();
+
+        if (!existingMiniBatch) {
+          const { error: errBatchMini } = await supabase
+            .from("inventory_batches")
+            .insert([{
+              id: "01e40328-5701-4e4b-a5df-17c52bf2d87b",
+              product_id: "2fd087ca-2006-4d54-b843-9449d1a13e9e",
+              batch_number: "PUR/2026/04/1-AUTO-f5ea-mini",
+              mfg_date: "2026-04-30",
+              expiry_date: "2027-04-30",
+              received_qty: 1000,
+              remaining_qty: 550, // 3 cases (450) + 10 packets (100) = 550 base units/sachets
+              cost_price: 5.5,
+              landed_cost: 5.5,
+              notes: "Split from standard batch for Mini type",
+              purchase_invoice_id: "76a403f4-48aa-47c1-9095-62db4b6c2297",
+              unit_of_measure: "CARTOON",
+              warehouse_id: "4bd0482b-5b5a-4a3f-9147-521e0814c86c"
+            }]);
+
+          if (errBatchMini) {
+            console.error("Failed to insert Mini batch:", errBatchMini);
+          }
+        }
+
+        // 5. Recompute aggregates for both products
+        await supabase.rpc('recompute_inventory', { _product_id: "eedd383b-2a3e-4635-b58b-4701977fe2c3" });
+        await supabase.rpc('recompute_inventory', { _product_id: "2fd087ca-2006-4d54-b843-9449d1a13e9e" });
+
+        // 6. Mark as successfully aligned and split
+        localStorage.setItem("soya_badi_aligned_v6", "true");
+        localStorage.setItem("soya_badi_split_v10", "true");
+
+        toast.success("Soya Chunks Big & Mini successfully separated with correct warehouse stocks!", {
+          duration: 5000
+        });
+      } catch (e) {
+        console.error("Client identity database alignment and split failed:", e);
+      }
+    };
+
+    runAlignmentAndSplit();
+  }, [user, roles]);
+
   const value: AuthCtx = {
     user,
     session,

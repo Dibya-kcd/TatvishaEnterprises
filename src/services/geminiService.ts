@@ -126,16 +126,16 @@ export async function extractInvoiceFromText(text: string): Promise<ExtractionRe
 // ─── Engagement tip ───────────────────────────────────────────────────────────
 export async function getEngagementTip(): Promise<string> {
   const prompt =
-    "Give a very short, one-sentence business tip for a spice distributor (Tatvisha Enterprises) to improve dealer engagement or sales today.";
+    "Give a very short, one-sentence business tip for Tatvisha Enterprises, an FMCG distributor, to improve dealer engagement or sales today.";
   try {
     const response = await ai.models.generateContent({
       model: MODEL_NAME,
       contents: prompt,
     });
-    return response.text || "Focus on sampling your new premium spice blends to top-performing retailers.";
+    return response.text || "Focus on your top-selling SKUs and ensure shelf availability at key retail accounts.";
   } catch (error) {
     console.error("Gemini Tip Error:", error);
-    return "Remind retailers about the upcoming festival season demand for high-quality spices.";
+    return "Review credit limits for high-volume customers ahead of the upcoming festival season.";
   }
 }
 
@@ -144,7 +144,7 @@ export async function getAICoachResponse(
   userMessage: string,
   context: string
 ): Promise<string> {
-  const prompt = `You are an AI business coach for Tatvisha Enterprises, a spice distribution company.
+  const prompt = `You are an AI business coach for Tatvisha Enterprises, a multi-category FMCG distribution company.
 Context: ${context}
 User question: ${userMessage}
 Give a concise, practical answer in 2-3 sentences.`;

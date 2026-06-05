@@ -1,5 +1,6 @@
 import * as React from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { COMPANY_SHORT } from "@/lib/config";
 import { useAuth } from "@/context/AuthContextCore";
 import { friendlyError } from "@/lib/errors";
 import { toast } from "sonner";
@@ -182,7 +183,8 @@ export function useProductsData() {
         const newBaseUnit = standardize(p.base_unit, 'pack');
 
         let newPPC = p.packets_per_case;
-        if (p.brand?.toLowerCase().includes("bharat") || p.name?.toLowerCase().includes("bharat")) {
+        const b = (p.brand || "").toUpperCase();
+        if (b === COMPANY_SHORT || b === "TE" || b === "BM") {
           if (p.name?.includes("100 g") && (!newPPC || newPPC <= 1)) {
             newPPC = 18;
           } else if (p.name?.includes("50 g") && (!newPPC || newPPC <= 1)) {

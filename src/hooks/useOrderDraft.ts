@@ -44,6 +44,7 @@ export function useOrderDraft({ editId, initialShopId }: UseOrderDraftProps = {}
   const [originalStatus, setOriginalStatus] = useState<string | null>(null);
   const [originalLines, setOriginalLines] = useState<Line[]>([]);
   const [orderNumber, setOrderNumber] = useState<string | null>(null);
+  const [salespersonId, setSalespersonId] = useState<string | null>(null);
 
   const lastLoadedIdRef = useRef<string | undefined>(undefined);
 
@@ -133,6 +134,7 @@ export function useOrderDraft({ editId, initialShopId }: UseOrderDraftProps = {}
       setPersistedId(order.id);
       setOriginalStatus(order.status);
       setOrderNumber(order.order_number);
+      setSalespersonId(order.salesperson_id);
       lastLoadedIdRef.current = order.id;
 
       if (!order.order_items || order.order_items.length === 0) {
@@ -240,6 +242,7 @@ export function useOrderDraft({ editId, initialShopId }: UseOrderDraftProps = {}
       setNotes("");
       setPersistedId(undefined);
       setOrderNumber(null);
+      setSalespersonId(null);
       lastLoadedIdRef.current = undefined;
       
       if (!keepContext) {
@@ -590,6 +593,8 @@ export function useOrderDraft({ editId, initialShopId }: UseOrderDraftProps = {}
     persistedId,
     orderNumber,
     originalStatus,
+    salespersonId,
+    setSalespersonId,
     addProduct,
     removeLine,
     updateLineQty,
@@ -600,8 +605,8 @@ export function useOrderDraft({ editId, initialShopId }: UseOrderDraftProps = {}
   }), [
     shopId, warehouseId, lines, discountAmount, discountType, notes, 
     orderDate, outstandingBalance, priceTiers, priceOverrides, 
-    totals, loading, persistedId, orderNumber, originalStatus, addProduct, 
-    removeLine, updateLineQty, updateLinePackType, updateLinePrice, 
+    totals, loading, persistedId, orderNumber, originalStatus, salespersonId,
+    addProduct, removeLine, updateLineQty, updateLinePackType, updateLinePrice, 
     resetDraft, currentUser
   ]);
 }

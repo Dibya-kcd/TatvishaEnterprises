@@ -294,7 +294,7 @@ export const StockTab = ({ data }: { data: ReportData }) => {
                  </div>
 
                  <div className="flex flex-wrap items-center gap-4 lg:gap-8 grow justify-between lg:justify-end">
-                    <div className="flex items-center gap-8 bg-slate-50/50 px-6 py-3 rounded-2xl border border-slate-100 min-w-[280px]">
+                    <div className="flex items-center gap-8 bg-slate-50/50 px-6 py-3 rounded-2xl border border-slate-100 min-w-[200px]">
                       <div className="text-center">
                          <div className="text-[14px] font-black text-slate-800">{item.cases}</div>
                          <div className="text-[9px] font-black text-slate-400 uppercase tracking-tighter">Cases</div>
@@ -304,10 +304,15 @@ export const StockTab = ({ data }: { data: ReportData }) => {
                          <div className="text-[14px] font-black text-slate-800">{item.packets}</div>
                          <div className="text-[9px] font-black text-slate-400 uppercase tracking-tighter">Packs</div>
                       </div>
-                      <div className="text-center">
-                         <div className="text-[14px] font-black text-slate-800">{item.weight}</div>
-                         <div className="text-[9px] font-black text-slate-400 uppercase tracking-tighter">Volume</div>
-                      </div>
+                      {item.weight && item.weight !== '—' && (
+                        <>
+                          <div className="h-6 w-px bg-slate-200" />
+                          <div className="text-center">
+                             <div className="text-[14px] font-black text-slate-800">{item.weight}</div>
+                             <div className="text-[9px] font-black text-slate-400 uppercase tracking-tighter">Volume</div>
+                          </div>
+                        </>
+                      )}
                     </div>
 
                     <div className="flex flex-col items-end gap-2 min-w-[120px]">
@@ -317,7 +322,7 @@ export const StockTab = ({ data }: { data: ReportData }) => {
                       )}>
                         {item.status}
                       </span>
-                      <div className="text-[12px] font-black text-slate-700">{item.units} <span className="text-[9px] text-slate-400 uppercase font-bold ml-0.5">Units</span></div>
+                      <div className="text-[12px] font-black text-slate-700">{item.units} <span className="text-[9px] text-slate-400 uppercase font-bold ml-0.5">Loose Unit{item.units === 1 ? '' : 's'}</span></div>
                     </div>
                  </div>
                </div>

@@ -24,7 +24,7 @@ const TEMPLATE_HEADERS = [
 ];
 
 const EXAMPLE_ROW = [
-  "B.M Chilli Packet 100g", 45.00, 10, 20, 100, "g", "packet", "Spices"
+  "TE Chilli Packet 100g", 45.00, 10, 20, 100, "g", "packet", "Spices"
 ];
 
 type ImportStep = "UPLOAD" | "MAPPING" | "PREVIEW" | "CONFIRM" | "RESULT";
@@ -78,19 +78,15 @@ export default function ProductImport() {
       // EXAMPLE - DO NOT REMOVE
       ["EXAMPLE - DO NOT REMOVE", "", "", "", "", "", "", "", "", "", "", "", "", "", ""],
       
-      // Blended Spices (Packet/PCS)
-      ["Chilli Powder 100g Packet", "BS-CP-100G", "45", "5", "Spices", "Blended", "packet", "10", "25", "25kg", "100g", "packet", "No", "", "500"],
-      ["Turmeric 200g Packet", "BS-TM-200G", "85", "5", "Spices", "Blended", "packet", "1", "50", "10kg", "200g", "packet", "No", "", "300"],
-      
-      // Processing Spices (Bulk/KG) - Multiplier logic will use 16kg/0.5kg = 32 units
-      ["Panch Phutan 500g (16kg Case)", "WS-PP-16KG", "1200", "5", "Spices", "Processing", "packet", "1", "32", "16kg", "500g", "packet", "No", "", "320"],
-      ["Cumin Seed 10kg Bag", "WS-CS-10KG", "4500", "5", "Spices", "Processing", "bag", "1", "2", "20kg", "10kg", "kg", "No", "", "30"],
-      
-      // CHAIN ITEM Rs.1/- (100pc)
-      ["Turmeric Rs.1/- (100pc)", "CH-TM-R1", "1", "5", "Chain Items", "Rs.1/-", "packet", "100", "20", "2000", "Rs.1/-(100pc)", "packet", "Yes", "Rs.1/-(100pc)", "2000"],
-      
-      // CARD BOARD ITEM (ACB)
-      ["Chicken Masala Rs.5/- (ACB)", "ACB-CH-R5", "5", "5", "Cardboard Items", "ACB", "pcs", "20", "21", "420", "Rs.5/-(20pc)", "pcs", "No", "", "420"]
+      // Representative sample across categories
+      ["Aashirvaad Atta 5kg", "AA-ATTA-5KG", "220", "5", "Flour & Grains", "Wheat", "bag", "1", "4", "20kg", "5kg", "kg", "No", "", "80"],
+      ["Maggi Noodles 70g x 12", "MG-NOO-70G", "14", "5", "Food Items", "Instant", "packet", "12", "8", "pack", "70g", "packet", "No", "", "500"],
+      ["Tata Salt 1kg", "TT-SALT-1KG", "28", "5", "Spices", "Basic", "packet", "1", "24", "24kg", "1kg", "kg", "No", "", "300"],
+      ["Amul Ghee 500ml", "AM-GHE-500", "310", "5", "Oil & Ghee", "Ghee", "unit", "1", "12", "6L", "500ml", "unit", "No", "", "60"],
+      ["Parle-G 100g x 20", "PG-BSC-100", "10", "5", "Snacks & Namkeen", "Biscuit", "packet", "20", "16", "pack", "100g", "packet", "No", "", "400"],
+      ["Haldirams Bhujia 200g", "HD-BHU-200", "55", "5", "Snacks & Namkeen", "Namkeen", "packet", "1", "30", "case", "200g", "packet", "No", "", "200"],
+      ["Surf Excel 500g", "SX-DET-500", "110", "5", "Household", "Detergent", "packet", "1", "20", "case", "500g", "packet", "No", "", "150"],
+      ["Red Label Tea 250g", "RL-TEA-250", "115", "5", "Beverages", "Tea", "packet", "1", "24", "case", "250g", "packet", "No", "", "100"],
     ];
 
     const csvContent = [

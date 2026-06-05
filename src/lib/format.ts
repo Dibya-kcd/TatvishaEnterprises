@@ -87,14 +87,25 @@ export const formatPackLabel = (packType: string | null | undefined, fallback: s
 };
 
 export const CATEGORY_LABELS: Record<string, string> = {
-  "BASIC SPICES": "Basic spices",
-  "BLENDED SPICES": "Blended spices",
-  "WHOLE SPICES": "Whole spices",
-  "PROCESS ITEMS": "Process spices",
+  // Legacy spice keys — kept for backward compatibility
+  "BASIC SPICES": "Basic Spices",
+  "BLENDED SPICES": "Blended Spices",
+  "WHOLE SPICES": "Whole Spices",
+  "PROCESS ITEMS": "Processed Spices",
+  // Generic FMCG
+  "SPICES": "Spices",
   "FOOD ITEMS": "Food Items",
-  "KETCHUP": "Ketchup",
-  "PASTA ITEMS": "Pasta Items",
-  "CHAIN": "Chain",
+  "BEVERAGES": "Beverages",
+  "DAIRY": "Dairy",
+  "SNACKS": "Snacks & Namkeen",
+  "OIL & GHEE": "Oil & Ghee",
+  "DRY FRUITS": "Dry Fruits",
+  "PULSES": "Pulses & Dals",
+  "FLOUR & GRAINS": "Flour & Grains",
+  "SAUCES & CONDIMENTS": "Sauces & Condiments",
+  "PERSONAL CARE": "Personal Care",
+  "HOUSEHOLD": "Household",
+  "CHAIN": "Chain Items",
   "OTHER": "Other",
 };
 
@@ -105,11 +116,13 @@ export function formatDivisionCategory(value?: string | null) {
   
   // Custom mapping for cases where DB value might be different
   const mappings: Record<string, string> = {
-    "BASIC": "Basic spices",
-    "BLENDED": "Blended spices",
-    "WHOLE": "Whole spices",
-    "PROCESS": "Process spices",
+    "BASIC": "Basic Spices",
+    "BLENDED": "Blended Spices",
+    "WHOLE": "Whole Spices",
+    "PROCESS": "Processed Spices",
     "FOOD": "Food Items",
+    "BEV": "Beverages",
+    "SNACK": "Snacks & Namkeen",
     "PASTA": "Pasta Items",
   };
   
