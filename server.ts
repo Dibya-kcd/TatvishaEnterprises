@@ -104,8 +104,10 @@ async function startServer() {
     });
   });
 
+  const isProduction = process.env.NODE_ENV === 'production';
+
   // Vite middleware for development
-  if (process.env.NODE_ENV !== 'production') {
+  if (!isProduction) {
     const vite = await createViteServer({
       server: { middlewareMode: true },
       appType: 'spa',
@@ -114,7 +116,8 @@ async function startServer() {
   } else {
     const distPath = path.join(process.cwd(), 'dist');
     app.use(express.static(distPath));
-    app.get('*', (req, res) => {
+    // For Express 5, use a middleware to handle SPA catch-all
+    app.use((req, res) => {
       res.sendFile(path.join(distPath, 'index.html'));
     });
   }
